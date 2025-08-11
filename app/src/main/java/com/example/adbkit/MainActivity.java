@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
         todoRepository.getAll(new DbCallback<ArrayList<Todo>>() {
             @Override
             public void onResult(DbResult<ArrayList<Todo>> result) {
-                if (result instanceof DbResult.Success) {
+                if (result.isSuccess()) {
                     ArrayList<Todo> todos = ((DbResult.Success<ArrayList<Todo>>) result).getData();
                     Log.d(TAG, "READ ALL - Başarılı, bulunan Todo sayısı: " + todos.size());
                     for (Todo todo : todos) {
