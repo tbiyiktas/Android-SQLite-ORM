@@ -1,0 +1,96 @@
+1. Tüm Kayıtları Seçme
+Bu en temel sorgudur ve bir WHERE koşulu içermez.
+
+Java
+
+todoRepository.selectWith(
+    Select.from(Todo.class),
+    new DbCallback<ArrayList<Todo>>() {
+        @Override
+        public void onResult(DbResult<ArrayList<Todo>> result) {
+            if (result instanceof DbResult.Success) {
+                ArrayList<Todo> todos = ((DbResult.Success<ArrayList<Todo>>) result).getData();
+                Log.d("SelectExample", "Tüm kayıtlar: " + todos.size());
+            }
+        }
+    }
+);
+2. Belirli Bir Koşula Göre Seçme (WHERE ile)
+completed alanı true olan tüm Todo'ları seçelim.
+
+Java
+
+todoRepository.selectWith(
+    Select.from(Todo.class)
+        .where()
+        .Equals("completed", true), // completed = true
+    new DbCallback<ArrayList<Todo>>() {
+        @Override
+        public void onResult(DbResult<ArrayList<Todo>> result) {
+            if (result instanceof DbResult.Success) {
+                ArrayList<Todo> completedTodos = ((DbResult.Success<ArrayList<Todo>>) result).getData();
+                Log.d("SelectExample", "Tamamlanan kayıtlar: " + completedTodos.size());
+            }
+        }
+    }
+);
+3. Çoklu Koşullar ve Sıralama (AND, ORDER BY ile)
+userId'si 1 olan ve completed durumu false olan tüm Todo'ları, id'ye göre azalan sırada seçelim.
+
+Java
+
+todoRepository.selectWith(
+    Select.from(Todo.class)
+        .where()
+        .Equals("userId", 1)  // userId = 1
+        .And()
+        .Equals("completed", false) // AND completed = false
+        .orderByDesc("id"), // id DESC
+    new DbCallback<ArrayList<Todo>>() {
+        @Override
+        public void onResult(DbResult<ArrayList<Todo>> result) {
+            if (result instanceof DbResult.Success) {
+                ArrayList<Todo> user1Todos = ((DbResult.Success<ArrayList<Todo>>) result).getData();
+                Log.d("SelectExample", "Kullanıcı 1'in tamamlanmamış kayıtları: " + user1Todos.size());
+            }
+        }
+    }
+);
+4. Sayfalama (LIMIT, OFFSET ile)
+İlk 10 kaydı atlayarak sonraki 5 kaydı seçelim.
+
+Java
+
+todoRepository.selectWith(
+    Select.from(Todo.class)
+        .limit(10, 5), // OFFSET 10, LIMIT 5
+    new DbCallback<ArrayList<Todo>>() {
+        @Override
+        public void onResult(DbResult<ArrayList<Todo>> result) {
+            if (result instanceof DbResult.Success) {
+                ArrayList<Todo> pagedTodos = ((DbResult.Success<ArrayList<Todo>>) result).getData();
+                Log.d("SelectExample", "Sayfalanmış kayıtlar: " + pagedTodos.size());
+            }
+        }
+    }
+);
+5. Belirli Sütunları Seçme (select metodu ile)
+Sadece id ve title sütunlarını seçelim. Bu sorgu, bellekte daha az yer kaplar ve daha hızlı çalışabilir.
+
+Java
+
+todoRepository.selectWith(
+    Select.from(Todo.class)
+        .select("id", "title")
+        .where()
+        .GreaterThan("id", 5), // id > 5
+    new DbCallback<ArrayList<Todo>>() {
+        @Override
+        public void onResult(DbResult<ArrayList<Todo>> result) {
+            if (result instanceof DbResult.Success) {
+                ArrayList<Todo> partialTodos = ((DbResult.Success<ArrayList<Todo>>) result).getData();
+                Log.d("SelectExample", "Sadece ID ve Title seçildi. Kayıt sayısı: " + partialTodos.size());
+            }
+        }
+    }
+);

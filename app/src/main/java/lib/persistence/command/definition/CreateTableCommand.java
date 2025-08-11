@@ -5,6 +5,8 @@ import java.util.ArrayList;
 
 import lib.persistence.profile.DbColumn;
 import lib.persistence.profile.Mapper;
+
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class CreateTableCommand {
@@ -20,7 +22,7 @@ public class CreateTableCommand {
         command.type = type;
         command.tableName = Mapper.getTableName(type);
 
-        ArrayList<DbColumn> columns = Mapper.classToDbColumns(type);
+        List<DbColumn> columns = Mapper.classToDbColumns(type);
 
         // Her bir sütun için SQL tanımını oluşturur ve listeye ekler
         ArrayList<String> columnDefinitions = columns.stream()
