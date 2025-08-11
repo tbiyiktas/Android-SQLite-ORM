@@ -1,26 +1,33 @@
 package lib.persistence;
 
+import android.content.ContentValues;
 import android.database.Cursor;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
+import lib.persistence.annotations.DbColumnAnnotation;
 import lib.persistence.command.manipulation.DeleteCommand;
 import lib.persistence.command.manipulation.InsertCommand;
 import lib.persistence.command.manipulation.UpdateCommand;
 import lib.persistence.command.query.GetQuery;
+import lib.persistence.command.query.Select;
 import lib.persistence.command.query.SelectQuery;
 import lib.persistence.profile.Mapper;
+import lib.persistence.profile.RowMapper;
 
 
 public abstract class GenericRepository<T> {
 
     private final ADbContext dbContext;
     private final Class<T> type;
+    private final RowMapper<T> defaultMapper;
 
     public GenericRepository(ADbContext dbContext, Class<T> type) {
         this.dbContext = dbContext;
         this.type = type;
+        this.defaultMapper = Mapper.getRowMapper(type);
     }
 
     public void insert(T object, DbCallback<T> callback) {
@@ -59,6 +66,78 @@ public abstract class GenericRepository<T> {
         }, callback, true);
     }
 
+    public void update(T item, DbCallback<T> callback) {
+        dbContext.runDbOperation((db) -> {
+            String tableName = Mapper.getTableName(type);
+
+            Field primaryKeyField = null;
+            Object primaryKeyValue = null;
+            ContentValues contentValues = new ContentValues();
+
+            try {
+                // Get all annotated fields from the cache
+                List<Field> fields = Mapper.getClassFields(type);
+
+                for (Field field : fields) {
+                    field.setAccessible(true);
+                    DbColumnAnnotation annotation = field.getAnnotation(DbColumnAnnotation.class);
+
+                    if (annotation != null && annotation.isPrimaryKey()) {
+                        primaryKeyField = field;
+                        primaryKeyValue = field.get(item);
+                        if (primaryKeyValue == null || (primaryKeyValue instanceof Number && ((Number)primaryKeyValue).longValue() <= 0)) {
+                            throw new IllegalArgumentException("Güncelleme için geçerli bir birincil anahtar (ID) gereklidir.");
+                        }
+                    } else {
+                        // Handle other fields and populate ContentValues
+                        String columnName = Mapper.getColumnName(field);
+                        Object value = field.get(item);
+
+                        if (value == null) {
+                            contentValues.putNull(columnName);
+                        } else if (value instanceof String) {
+                            contentValues.put(columnName, (String) value);
+                        } else if (value instanceof Integer) {
+                            contentValues.put(columnName, (Integer) value);
+                        } else if (value instanceof Long) {
+                            contentValues.put(columnName, (Long) value);
+                        } else if (value instanceof Boolean) {
+                            contentValues.put(columnName, (Boolean) value);
+                        } else if (value instanceof Float) {
+                            contentValues.put(columnName, (Float) value);
+                        } else if (value instanceof Double) {
+                            contentValues.put(columnName, (Double) value);
+                        } else if (value instanceof byte[]) {
+                            contentValues.put(columnName, (byte[]) value);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                throw new IllegalStateException("Güncelleme için nesne verisi hazırlanırken hata oluştu.", e);
+            }
+
+            if (primaryKeyField == null) {
+                throw new IllegalStateException("Nesnede birincil anahtar alanı bulunamadı.");
+            }
+
+            if (contentValues.size() == 0) {
+                return new DbResult.Error<>(new Exception("Güncellenecek veri bulunamadı (ContentValues boş)."), "Güncellenecek veri bulunamadı.");
+            }
+
+            String whereClause = Mapper.getColumnName(primaryKeyField) + " = ?";
+            String[] whereArgs = {String.valueOf(primaryKeyValue)};
+
+            int rowsAffected = db.update(tableName, contentValues, whereClause, whereArgs);
+
+            if (rowsAffected <= 0) {
+                return new DbResult.Error<>(new Exception("Güncellenecek kayıt bulunamadı veya işlem başarısız oldu."), "Hiçbir kayıt güncellenemedi. ID: " + primaryKeyValue);
+            }
+            return new DbResult.Success<>(item);
+
+        }, callback, true);
+    }
+
+    /*
     public void update(T object, DbCallback<T> callback) {
         dbContext.runDbOperation((db) -> {
             UpdateCommand command = UpdateCommand.build(object);
@@ -70,7 +149,7 @@ public abstract class GenericRepository<T> {
             return new DbResult.Success<>(object);
         }, callback, true);
     }
-
+*/
     public void delete(T object, DbCallback<T> callback) {
         dbContext.runDbOperation((db) -> {
             DeleteCommand command = DeleteCommand.build(object);
@@ -96,7 +175,7 @@ public abstract class GenericRepository<T> {
         }, callback, false);
     }
 
-    public void selectAll(DbCallback<ArrayList<T>> callback) {
+    public void selectAll_old(DbCallback<ArrayList<T>> callback) {
         dbContext.runDbOperation((db) -> {
             // SelectQuery artık generic olduğu için derleme hatası almayız
             SelectQuery<T> command = SelectQuery.build(type);
@@ -114,6 +193,48 @@ public abstract class GenericRepository<T> {
         }, callback, false);
     }
 
+    /**
+     * Tablodaki tüm kayıtları seçer.
+     * Bu metot, `Select` sınıfını kullanarak basit bir "SELECT *" sorgusu oluşturur.
+     */
+   public void selectAll(DbCallback<ArrayList<T>> callback) {
+       Select<T> query = Select.from(type);
+       executeSelect(query, callback);
+   }
+
+    /**
+     * Önceden oluşturulmuş bir `Select` nesnesini kullanarak sorguyu çalıştırır.
+     * Bu, en esnek ve güvenli sorgulama yöntemidir.
+     *
+     * @param query    Builder deseniyle oluşturulmuş sorgu nesnesi.
+     * @param callback Asenkron sonuçları işleyecek geri çağırma (callback) nesnesi.
+     */
+    public void selectWith(Select<T> query, DbCallback<ArrayList<T>> callback) {
+        executeSelect(query, callback);
+    }
+
+    /**
+     * `Select` nesnesini kullanarak sorguyu çalıştıran genel yardımcı metot.
+     * selectAll ve selectWith metotlarındaki kod tekrarını önler.
+     *
+     * @param query    Builder deseniyle oluşturulmuş sorgu nesnesi.
+     * @param callback Asenkron sonuçları işleyecek geri çağırma nesnesi.
+     */
+    private void executeSelect(Select<T> query, DbCallback<ArrayList<T>> callback) {
+        dbContext.runDbOperation((db) -> {
+            ArrayList<T> items = new ArrayList<>();
+            // Sorguyu çalıştırır ve RowMapper ile sonuçları nesnelere dönüştürür
+            try (Cursor cursor = db.rawQuery(query.getQuery(), query.getWhereArgs())) {
+                if (cursor.moveToFirst()) {
+                    do {
+                        items.add(defaultMapper.mapRow(cursor));
+                    } while (cursor.moveToNext());
+                }
+            }
+            return new DbResult.Success<>(items);
+        }, callback, false);
+    }
+    /*
     public void selectWhere(String whereClause, String[] whereArgs, DbCallback<ArrayList<T>> callback) {
         dbContext.runDbOperation((db) -> {
             // SelectQuery artık generic olduğu için derleme hatası almayız
@@ -132,6 +253,7 @@ public abstract class GenericRepository<T> {
             return new DbResult.Success<>(items);
         }, callback, false);
     }
+    */
 }
 
 /*

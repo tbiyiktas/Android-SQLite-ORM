@@ -12,7 +12,7 @@ import lib.persistence.command.definition.DropTableCommand;
 
 public class DbContext extends ADbContext {
     private static final String dbName = "local.db";
-    private static final int version = 1;
+    private static final int version = 3;
 
     public DbContext(Context context) {
         super(context, dbName, null, version);

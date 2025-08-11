@@ -10,11 +10,105 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import lib.persistence.annotations.DbColumnAnnotation;
 import lib.persistence.annotations.DbTableAnnotation;
 
 public class Mapper {
+    private static final Map<Class<?>, List<Field>> fieldCache = new ConcurrentHashMap<>();
+
+
+    public static String getColumnName(Field field) {
+        DbColumnAnnotation annotation = field.getAnnotation(DbColumnAnnotation.class);
+        return (annotation != null && !annotation.name().isEmpty()) ? annotation.name() : field.getName();
+    }
+
+    /**
+     * Bir Cursor satırını, belirtilen tipteki bir nesneye dönüştürmek için
+     * bir RowMapper döndürür. Bu RowMapper reflection cache kullanır.
+     */
+    public static <T> RowMapper<T> getRowMapper(Class<T> type) {
+        return cursor -> {
+            try {
+                T item = type.getDeclaredConstructor().newInstance();
+                List<Field> fields = getClassFields(type); // Önbelleklenmiş alanları kullan
+
+                for (Field field : fields) {
+                    // Sütun adını al
+                    String columnName = getColumnName(field);
+                    // Cursor'da o sütunun indeksini al
+                    int columnIndex = cursor.getColumnIndex(columnName);
+
+                    // --- BURADAKİ KONTROL ÇOK KRİTİK! ---
+                    // Eğer sütun yoksa (getColumnIndex -1 döndürür), bu alana değer atamadan devam et.
+                    if (columnIndex == -1) {
+                        continue;
+                    }
+
+                    // Alanın tipine göre değeri Cursor'dan oku ve alana set et
+                    Class<?> fieldType = field.getType();
+
+                    if (fieldType == String.class) {
+                        field.set(item, cursor.getString(columnIndex));
+                    } else if (fieldType == int.class || fieldType == Integer.class) {
+                        field.set(item, cursor.getInt(columnIndex));
+                    } else if (fieldType == long.class || fieldType == Long.class) {
+                        field.set(item, cursor.getLong(columnIndex));
+                    } else if (fieldType == boolean.class || fieldType == Boolean.class) {
+                        // INTEGER 0 veya 1 olarak saklandığı varsayıldı
+                        field.set(item, cursor.getInt(columnIndex) == 1);
+                    } else if (fieldType == float.class || fieldType == Float.class) {
+                        field.set(item, cursor.getFloat(columnIndex));
+                    } else if (fieldType == double.class || fieldType == Double.class) {
+                        field.set(item, cursor.getDouble(columnIndex));
+                    } else if (fieldType == byte[].class) {
+                        field.set(item, cursor.getBlob(columnIndex));
+                    }
+                    // Diğer tipler için mantık eklenebilir
+                }
+                return item;
+            } catch (Exception e) {
+                // Hata yönetimini iyileştirin. Loglama yapmak faydalı olacaktır.
+                throw new IllegalStateException("Nesne eşleme hatası: " + type.getSimpleName(), e);
+            }
+        };
+    }
+
+    // --- Önbellekli yansıma metodu ---
+    /**
+     * Bir model sınıfına ait DbColumnAnnotation ile işaretlenmiş alanları bulur ve önbelleğe alır.
+     *
+     * @param type Alanları alınacak sınıf.
+     * @return DbColumnAnnotation ile işaretlenmiş alanların listesi.
+     */
+    public static List<Field> getClassFields(Class<?> type) {
+        // 1. Önbellekte varsa, doğrudan geri dön
+        if (fieldCache.containsKey(type)) {
+            return fieldCache.get(type);
+        }
+
+        // 2. Önbellekte yoksa, yansıma ile bul
+        List<Field> fields = new ArrayList<>();
+        Class<?> currentClass = type;
+
+        while (currentClass != null && currentClass != Object.class) {
+            for (Field field : currentClass.getDeclaredFields()) {
+                if (field.isAnnotationPresent(DbColumnAnnotation.class)) {
+                    field.setAccessible(true); // Özel alanlara erişim için
+                    fields.add(field);
+                }
+            }
+            currentClass = currentClass.getSuperclass();
+        }
+
+        // 3. Sonucu önbelleğe al ve geri dön
+        fieldCache.put(type, fields);
+        return fields;
+    }
+
 
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
     private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -227,4 +321,6 @@ public class Mapper {
         }
         return "TEXT";
     }
+
+
 }

@@ -63,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
     // Asenkron CREATE işlemi
     private void createTodo() {
         Todo newTodo = new Todo();
+
         newTodo.userId = 1;
         newTodo.title = "Alışveriş yap";
         newTodo.completed = false;
