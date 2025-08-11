@@ -13,7 +13,9 @@ import androidx.core.view.WindowInsetsCompat;
 import java.util.ArrayList;
 
 import lib.persistence.DbCallback;
+import lib.persistence.DbContext;
 import lib.persistence.DbResult;
+import lib.persistence.RepositoryFactory;
 import lib.persistence.domain.entities.Todo;
 import lib.persistence.repositories.TodoRepository;
 
@@ -40,7 +42,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main); // activity_main.xml dosyasını varsayıyoruz
 
         // Veritabanı Repository'sini başlatma
-        todoRepository = new TodoRepository(getApplicationContext());
+        // DbContext dbContext = new DbContext(getApplicationContext());
+        // todoRepository = new TodoRepository(dbContext);
+        todoRepository = RepositoryFactory.getTodoRepository(getApplicationContext());
 
         // Örnek bir işlem başlatmak için bir buton tanımlayalım
         Button startDbOpsButton = findViewById(R.id.start_db_ops_button);
@@ -64,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
         newTodo.completed = false;
 
         Log.d(TAG, "Yeni bir Todo oluşturuluyor...");
-        todoRepository.create(newTodo, new DbCallback<Todo>() {
+        todoRepository.insert(newTodo, new DbCallback<Todo>() {
             @Override
             public void onResult(DbResult<Todo> result) {
                 if (result instanceof DbResult.Success) {
@@ -84,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
     // Asenkron READ işlemi (Tüm Todoları oku)
     private void readAllTodos() {
         Log.d(TAG, "Tüm Todolar okunuyor...");
-        todoRepository.getAll(new DbCallback<ArrayList<Todo>>() {
+        todoRepository.selectAll(new DbCallback<ArrayList<Todo>>() {
             @Override
             public void onResult(DbResult<ArrayList<Todo>> result) {
                 if (result.isSuccess()) {

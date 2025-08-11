@@ -4,6 +4,7 @@ package lib.persistence.command.query;
 import lib.persistence.annotations.DbTableAnnotation;
 import lib.persistence.profile.Mapper;
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class SelectQuery {
 
@@ -55,5 +56,16 @@ public class SelectQuery {
 
     public Class<?> getType() {
         return type;
+    }
+
+    // Yeni eklenen metot: Dışarıdan ham where koşulları ve argümanları eklemek için
+    public SelectQuery addRawWhereClause(String whereClause, String... args) {
+        if (whereClause != null && !whereClause.isEmpty()) {
+            whereClauses.add("(" + whereClause + ")");
+        }
+        if (args != null) {
+            Collections.addAll(whereArgs, args);
+        }
+        return this;
     }
 }

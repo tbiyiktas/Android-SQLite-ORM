@@ -20,20 +20,25 @@ public class DbContext extends ADbContext {
 
     @Override
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
-        synchronized (getLock()) {
+        // SQLiteOpenHelper zaten thread-safe olduğu için ekstra synchronized bloğuna gerek yoktur.
+        // Bu metod, veritabanı ilk kez oluşturulduğunda çalışır.
             sqLiteDatabase.execSQL(CreateTableCommand.build(Person.class).getQuery());
             sqLiteDatabase.execSQL(CreateTableCommand.build(Todo.class).getQuery());
             sqLiteDatabase.execSQL(CreateIndexCommand.build(Person.class, "idxPersonId", false, "id").getQuery());
-        }
+
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
-        synchronized (getLock()) {
+        // SQLiteOpenHelper zaten thread-safe olduğu için ekstra synchronized bloğuna gerek yoktur.
+        // Bu metod, veritabanı versiyonu yükseltildiğinde çalışır.
+
+        // Bu basit bir upgrade stratejisidir (tüm tabloları silip yeniden oluşturur).
+        // Gerçek projelerde veri kaybını önlemek için daha gelişmiş migration adımları uygulanmalıdır.
             sqLiteDatabase.execSQL(DropIndexCommand.build("idxPersonId").getQuery());
             sqLiteDatabase.execSQL(DropTableCommand.build(Person.class).getQuery());
             sqLiteDatabase.execSQL(DropTableCommand.build(Todo.class).getQuery());
-        }
+
         onCreate(sqLiteDatabase);
     }
 }
