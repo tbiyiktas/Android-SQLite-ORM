@@ -18,6 +18,96 @@ import lib.persistence.command.query.SelectQuery;
 import lib.persistence.profile.Mapper;
 import java.util.HashMap;
 
+// Tekrarlanan kodları soyutlamak için yeni fonksiyonel arayüz
+@FunctionalInterface
+interface DbOperation<T> {
+    DbResult<T> execute(SQLiteDatabase db) throws Exception;
+}
+
+public abstract class ADbContext extends SQLiteOpenHelper {
+
+    private final Object lock = new Object();
+    private static final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+    public ADbContext(@Nullable Context context, @Nullable String name, @Nullable SQLiteDatabase.CursorFactory factory, int version) {
+        super(context, name, factory, version);
+    }
+
+    // Her metotta tekrarlanan boilerplate kodu yöneten genel yardımcı metot
+    protected  <T> void runDbOperation(DbOperation<T> operation, DbCallback<T> callback, boolean isWritable) {
+        executorService.execute(() -> {
+            synchronized (lock) {
+                DbResult<T> result;
+                SQLiteDatabase db = null;
+                Cursor cursor = null;
+                try {
+                    db = isWritable ? getWritableDatabase() : getReadableDatabase();
+                    result = operation.execute(db);
+                } catch (Exception e) {
+                    result = new DbResult.Error<>(e, e.getMessage());
+                } finally {
+                    if (cursor != null && !cursor.isClosed()) {
+                        cursor.close();
+                    }
+                    // db.endTransaction(); gibi özel işlemler için metotlar kendi içlerinde yönetilmeli.
+                    if (db != null && db.isOpen()) {
+                        db.close();
+                    }
+                }
+                callback.onResult(result);
+            }
+        });
+    }
+
+    // Bu metot, Repository'ler tarafından kullanılacak yeni insert metodu
+    public <T> void internalInsert(Object object, DbCallback<T> callback) {
+        runDbOperation((db) -> {
+            InsertCommand command = InsertCommand.build(object);
+            long last_insert_rowid = db.insert(command.getTableName(), null, command.getContentValues());
+
+            if (last_insert_rowid == -1) {
+                throw new Exception("Kayıt eklenirken bir hata oluştu.");
+            }
+            Mapper.setId(object, last_insert_rowid);
+            return new DbResult.Success<>((T) object);
+        }, callback, true);
+    }
+
+    // ... Diğer tüm CRUD metotları benzer şekilde GenericRepository'e taşınır.
+
+    // Ham SQL sorgularını çalıştırmak için mevcut metotlar (kaldırılmadı)
+    public void execSql(String sql, DbCallback<Void> callback) {
+        runDbOperation((db) -> {
+            db.execSQL(sql);
+            return new DbResult.Success<>(null);
+        }, callback, true);
+    }
+
+    public void rawQuery(String sql, String[] selectionArgs, DbCallback<ArrayList<HashMap<String, String>>> callback) {
+        runDbOperation((db) -> {
+            ArrayList<HashMap<String, String>> rows = new ArrayList<>();
+            try (Cursor cursor = db.rawQuery(sql, selectionArgs)) {
+                if (cursor.moveToFirst()) {
+                    String[] columnNames = cursor.getColumnNames();
+                    do {
+                        HashMap<String, String> row = new HashMap<>();
+                        for (String columnName : columnNames) {
+                            int columnIndex = cursor.getColumnIndex(columnName);
+                            if (columnIndex != -1) {
+                                row.put(columnName, cursor.getString(columnIndex));
+                            }
+                        }
+                        rows.add(row);
+                    } while (cursor.moveToNext());
+                }
+                return new DbResult.Success<>(rows);
+            }
+        }, callback, false);
+    }
+}
+
+
+/*
 public abstract class ADbContext extends SQLiteOpenHelper {
 
     private final Object lock = new Object();
@@ -277,7 +367,7 @@ public abstract class ADbContext extends SQLiteOpenHelper {
         });
     }
 }
-
+*/
 /*
 public abstract class ADbContext extends SQLiteOpenHelper {
 
