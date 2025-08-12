@@ -134,6 +134,70 @@ public abstract class GenericRepository<T> {
     }
 
     /**
+     * Veritabanından belirli bir ID'ye sahip kaydı siler ve silinen nesneyi döndürür.
+     *
+     * @param id Silinecek kaydın birincil anahtar değeri.
+     * @param callback İşlemin sonucunu işleyecek geri çağırma (callback) nesnesi.
+     */
+    public void deleteById(Object id, DbCallback<T> callback) { // DbCallback<Boolean> yerine DbCallback<T> yapıldı
+        dbContext.runDbOperation((db) -> {
+            // Silinecek nesneyi önce veritabanından çekelim
+            String primaryKeyColumn = Mapper.getPrimaryKeyColumnName(type);
+            Select<T> selectCommand = Select.from(type)
+                    .where()
+                    .Equals(primaryKeyColumn, id)
+                    .limit(1);
+
+            T itemToDelete = null;
+            try (Cursor cursor = db.rawQuery(selectCommand.getQuery(), selectCommand.getWhereArgs())) {
+                if (cursor.moveToFirst()) {
+                    itemToDelete = Mapper.cursorToObject(cursor, selectCommand.getType());
+                }
+            }
+
+            // Eğer silinecek kayıt bulunamazsa, hata döndür.
+            if (itemToDelete == null) {
+                return new DbResult.Error<>(new Exception("Kayıt bulunamadı."), "Belirtilen ID'ye sahip kayıt bulunamadı.");
+            }
+
+            // Kayıt bulunduktan sonra silme işlemini gerçekleştir
+            int rowsAffected = db.delete(
+                    Mapper.getTableName(type),
+                    primaryKeyColumn + " = ?",
+                    new String[]{String.valueOf(id)}
+            );
+
+            if (rowsAffected <= 0) {
+                // Silme işlemi başarısız olursa (bu duruma nadiren düşülür)
+                return new DbResult.Error<>(new Exception("Silme işlemi başarısız oldu."), "Kayıt silinemedi.");
+            }
+
+            // Başarılı olursa, silinen nesneyi döndür
+            return new DbResult.Success<>(itemToDelete);
+
+        }, callback, true); // true: yazılabilir veritabanı erişimi
+    }
+
+    /**
+     * Tablodaki tüm kayıtları siler.
+     * Bu işlem sonucunda silinen satır sayısı geri döndürülür.
+     * Tablo boşsa, 0 değeri döner ve bu bir hata olarak kabul edilmez.
+     *
+     * @param callback İşlemin sonucunu işleyecek geri çağırma (callback) nesnesi.
+     */
+    public void deleteAll(DbCallback<Integer> callback) {
+        dbContext.runDbOperation((db) -> {
+            String tableName = Mapper.getTableName(type);
+            int rowsAffected = db.delete(tableName, null, null);
+
+            // Her durumda, etkilenen satır sayısını başarı olarak döndür
+            // 0 dönerse, bu tablonun zaten boş olduğu anlamına gelir.
+            return new DbResult.Success<>(rowsAffected);
+
+        }, callback, true);
+    }
+
+    /**
      * Tüm kayıtları seçmek için kısayol metot.
      * @param callback İşlemin sonucunu işleyecek geri çağırma (callback) nesnesi.
      */
