@@ -1,13 +1,14 @@
 // lib/persistence/DbContext.java
-package lib.persistence;
+package com.example.adbkit;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 
+import lib.persistence.ADbContext;
 import lib.persistence.command.definition.CreateTableCommand;
 import lib.persistence.command.definition.CreateIndexCommand;
 import lib.persistence.command.definition.DropTableCommand;
-import lib.persistence.domain.entities.Todo;
+import com.example.adbkit.entities.Todo;
 
 public class DbContext extends ADbContext {
     private static final String dbName = "local.db";
@@ -29,8 +30,6 @@ public class DbContext extends ADbContext {
         // Örnek indeks (title üzerinde)
         db.execSQL(CreateIndexCommand.build(Todo.class,
                 "idx_todos_title",      // index adı
-
-
                 false,                   // unique mi?
                 new String[]{"title"}  // kolonlar
         ).getQuery());

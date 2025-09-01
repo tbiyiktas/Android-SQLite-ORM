@@ -3,6 +3,8 @@ package lib.persistence;
 
 import android.database.Cursor;
 
+import com.example.adbkit.DbContext;
+
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;

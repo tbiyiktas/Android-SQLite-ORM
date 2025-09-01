@@ -13,7 +13,10 @@ import androidx.annotation.Nullable;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class ADbContext extends SQLiteOpenHelper {
@@ -26,20 +29,39 @@ public abstract class ADbContext extends SQLiteOpenHelper {
         super(context, name, null, version);
 
         DbContextConfig cfg = DbContextConfig.get();
-
+        final AtomicInteger n = new AtomicInteger(1);
         // Okuma havuzu (4 thread default)
         final int reads = Math.max(1, cfg.readThreads);
-        this.readPool = Executors.newFixedThreadPool(reads, new ThreadFactory() {
-            private final AtomicInteger n = new AtomicInteger(1);
-            @Override public Thread newThread(@NonNull Runnable r) {
-                Thread t = new Thread(r, cfg.readThreadNamePrefix + n.getAndIncrement());
-                t.setDaemon(true);
-                return t;
-            }
-        });
+//        this.readPool = Executors.newFixedThreadPool(reads, new ThreadFactory() {
+//            private final AtomicInteger n = new AtomicInteger(1);
+//            @Override public Thread newThread(@NonNull Runnable r) {
+//                Thread t = new Thread(r, cfg.readThreadNamePrefix + n.getAndIncrement());
+//                t.setDaemon(true);
+//                return t;
+//            }
+//        });
+
+        this.readPool = new ThreadPoolExecutor(
+                cfg.readThreads,                       // corePoolSize
+                cfg.readThreads,                       // maximumPoolSize
+                0L, TimeUnit.MILLISECONDS,             // keepAliveTime
+                new LinkedBlockingQueue<>(256),        // bounded queue (geri basınç)
+                r -> {                                 // ThreadFactory (lambda)
+                    Thread t = new Thread(r, cfg.readThreadNamePrefix + n.getAndIncrement());
+                    t.setDaemon(true);
+                    return t;
+                },
+                new ThreadPoolExecutor.CallerRunsPolicy()  // backpressure
+        );
 
         // Yazma havuzu (tek thread)
-        this.writePool = Executors.newSingleThreadExecutor(r -> {
+//        this.writePool = Executors.newSingleThreadExecutor(r -> {
+//            Thread t = new Thread(r, cfg.writeThreadName);
+//            t.setDaemon(true);
+//            return t;
+//        });
+
+        this.writePool = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, cfg.writeThreadName);
             t.setDaemon(true);
             return t;

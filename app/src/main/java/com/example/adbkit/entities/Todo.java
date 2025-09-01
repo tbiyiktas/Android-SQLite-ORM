@@ -1,4 +1,4 @@
-package lib.persistence.domain.entities;
+package com.example.adbkit.entities;
 
 import lib.persistence.annotations.DbColumnAnnotation;
 import lib.persistence.annotations.DbTableAnnotation;

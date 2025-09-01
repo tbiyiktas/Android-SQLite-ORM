@@ -7,8 +7,12 @@ import lib.persistence.profile.RowMapper;
 
 
 import java.util.*;
-import java.util.stream.Collectors;
+import android.database.Cursor;
 
+import java.util.function.Function;
+
+import lib.persistence.profile.Mapper;
+/*
 
 public class SelectQuery<T> {
     final Class<T> type;
@@ -63,4 +67,62 @@ public class SelectQuery<T> {
         };
         return c -> Mapper.cursorToObject(c, type);
     }
+}
+*/
+
+
+/**
+ * SELECT derleme çıktısı: SQL, argümanlar ve opsiyonel satır eşleyici.
+ * - rowMapper verilmezse ve type sağlanmışsa, Mapper.cursorToObject(...) varsayılan kullanılır.
+ * - Her iki ctor da desteklenir:
+ *     new SelectQuery<>(sql, args, rowMapper)
+ *     new SelectQuery<>(sql, args, type, rowMapper)
+ */
+public final class SelectQuery<T> {
+
+    private final String sql;
+    private final String[] args;
+    private final Function<Cursor, T> rowMapper; // null olabilir
+    private final Class<T> type;                  // null olabilir (tip verilmeden ctor kullanılırsa)
+
+    /** Tip vermeden: sadece özel rowMapper ile. */
+    public SelectQuery(String sql, String[] args, Function<Cursor, T> rowMapper) {
+        this(sql, args, null, rowMapper);
+    }
+
+    /** Tip vererek: rowMapper null ise Mapper.cursorToObject(...) varsayılanı kullanılır. */
+    public SelectQuery(String sql, String[] args, Class<T> type, Function<Cursor, T> rowMapper) {
+        if (sql == null || sql.trim().isEmpty()) throw new IllegalArgumentException("sql is required");
+        this.sql = sql;
+        this.args = (args == null) ? new String[0] : args;
+        this.type = type;
+        this.rowMapper = rowMapper;
+    }
+
+    public String getSql() {
+        return sql;
+    }
+
+    public String[] getArgs() {
+        return args;
+    }
+
+    /**
+     * Row mapper:
+     * - Eğer özel mapper verildiyse onu döndürür.
+     * - Değilse ve type sağlanmışsa Mapper.cursorToObject(...) kullanan bir mapper döndürür.
+     * - İkisi de yoksa IllegalStateException atar (tip tahmini yapılamaz).
+     */
+    public Function<Cursor, T> getRowMapperOrDefault() {
+        if (rowMapper != null) return rowMapper;
+        if (type != null) {
+            return c -> Mapper.cursorToObject(c, type);
+        }
+        throw new IllegalStateException(
+                "No rowMapper provided and type is null; cannot map Cursor to T. " +
+                        "Use SelectQuery(sql,args,type,null) or provide a rowMapper."
+        );
+    }
+
+
 }

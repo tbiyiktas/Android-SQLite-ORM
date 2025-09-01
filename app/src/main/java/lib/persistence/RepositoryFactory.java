@@ -4,7 +4,7 @@ import android.content.Context;
 
 import com.example.adbkit.MyApplication;
 
-import lib.persistence.repositories.TodoRepository;
+import com.example.adbkit.repositories.TodoRepository;
 
 public final class RepositoryFactory {
     private RepositoryFactory() {}

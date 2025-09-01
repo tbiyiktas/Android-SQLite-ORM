@@ -4,20 +4,15 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import java.util.ArrayList;
 
 import lib.persistence.DbCallback;
-import lib.persistence.DbContext;
 import lib.persistence.DbResult;
 import lib.persistence.RepositoryFactory;
-import lib.persistence.domain.entities.Todo;
-import lib.persistence.repositories.TodoRepository;
+import com.example.adbkit.entities.Todo;
+import com.example.adbkit.repositories.TodoRepository;
 
 public class MainActivity extends AppCompatActivity {
 

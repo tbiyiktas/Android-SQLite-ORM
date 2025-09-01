@@ -2,8 +2,6 @@ package com.example.adbkit;
 
 import android.app.Application;
 
-import lib.persistence.DbContext;
-
 public class MyApplication extends Application {
     private volatile DbContext dbContext; // lazy
 
