@@ -10,6 +10,12 @@
 **Why this library?**
 You get the ergonomics of an ORM without losing the transparency of SQL. Everything is plain Java, strongly-typed, and optimized for Android (WAL, PRAGMA tuning, bounded executors, reflection caches).
 
+### Why not Room?
+| Use case | Room | Android SQLite ORM |
+|---|---|---|
+| Full SQL control | Limited (abstractions) | ✅ Direct, fluent, parameterized |
+| Lightweight | Medium | ✅ Very light, zero extra deps |
+| WAL/PRAGMA tuning | Manual | ✅ Built-in hooks |
 ---
 
 ## Table of Contents
