@@ -211,12 +211,29 @@ public final class Select<T> {
         sql.append(columns.isEmpty() ? "*" : String.join(", ", columns));
         sql.append(" FROM ").append(qId(table));
 
+//        if (!whereClauses.isEmpty()) {
+//            sql.append(" WHERE ");
+//            boolean first = true;
+//            for (String c : whereClauses) {
+//                if (first) { sql.append(c.replaceFirst("^(AND|OR)\\s+", "")); first = false; }
+//                else { sql.append(' ').append(c); }
+//            }
+//        }
+
         if (!whereClauses.isEmpty()) {
             sql.append(" WHERE ");
             boolean first = true;
             for (String c : whereClauses) {
-                if (first) { sql.append(c.replaceFirst("^(AND|OR)\\s+", "")); first = false; }
-                else { sql.append(' ').append(c); }
+                String part = c.trim();
+                boolean hasOp = part.startsWith("AND ") || part.startsWith("OR ");
+                if (first) {
+                    // İlk parçada baştaki AND/OR varsa kırp
+                    sql.append(hasOp ? part.substring(4) : part);
+                    first = false;
+                } else {
+                    // Sonraki parçalarda op yoksa otomatik AND ekle
+                    sql.append(' ').append(hasOp ? part : "AND " + part);
+                }
             }
         }
 
@@ -247,7 +264,13 @@ public final class Select<T> {
         for (Object p : params) {
             if (p == null)
                 throw new IllegalArgumentException("Null param passed to a '?' placeholder. Use whereNull()/whereNotNull().");
-            args.add(String.valueOf(p));
+            //args.add(String.valueOf(p));
+            if (p instanceof Boolean) {
+                args.add(((Boolean) p) ? "1" : "0");  // boolean → "1"/"0"
+            }
+            else{
+                args.add(String.valueOf(p));
+            }
         }
     }
 

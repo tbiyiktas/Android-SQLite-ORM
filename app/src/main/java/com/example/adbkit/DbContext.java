@@ -19,6 +19,11 @@ public class DbContext extends ADbContext {
         super(context, dbName, version);
     }
 
+    // for test only
+    public DbContext(Context context, String s, int i) {
+        super(context, s, i);
+    }
+
     // PRAGMA eklemek istersen:
     // @Override protected void onConfigureExtra(SQLiteDatabase db) {
     //     runPragmaQuery(db, "PRAGMA cache_size=2000");

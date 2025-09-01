@@ -47,7 +47,7 @@ public final class Mapper {
 
     private static List<DbColumn> scanColumns(Class<?> type) {
         ArrayList<DbColumn> list = new ArrayList<>();
-        int ordinal = 0;
+
         Class<?> cur = type;
         while (cur != null && cur != Object.class) {
             for (Field f : cur.getDeclaredFields()) {
@@ -57,7 +57,7 @@ public final class Mapper {
                 String columnName = ann.name().isEmpty() ? f.getName() : ann.name();
                 DbDataType dataType = toDbDataType(f.getType());
                 list.add(new DbColumn(
-                        ordinal++,
+                        ann.ordinal(),
                         f.getName(),
                         columnName,
                         dataType,
