@@ -1,5 +1,7 @@
 package lib.persistence.command.query;
 
+import static lib.persistence.SqlNames.qId;
+
 import lib.persistence.profile.DbColumn;
 import lib.persistence.profile.Mapper;
 
@@ -36,7 +38,7 @@ public class GetQuery {
         if (pk == null) throw new IllegalStateException("Primary key bulunamadı: " + type.getName());
 
         // Güvenli parametreli sorgu
-        String sql = "SELECT * FROM " + tableName + " WHERE " + pk.getColumnName() + " = ? LIMIT 1";
+        String sql = "SELECT * FROM " + qId(tableName) + " WHERE " + qId(pk.getColumnName()) + " = ? LIMIT 1";
         String[] whereArgs = new String[]{ String.valueOf(id) };
 
         return new GetQuery(sql, whereArgs, type);

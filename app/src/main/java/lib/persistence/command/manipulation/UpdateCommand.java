@@ -1,6 +1,8 @@
 // lib/persistence/command/manipulation/UpdateCommand.java
 package lib.persistence.command.manipulation;
 
+import static lib.persistence.SqlNames.qId;
+
 import android.content.ContentValues;
 import lib.persistence.profile.DbColumn;
 import lib.persistence.profile.Mapper;
@@ -32,7 +34,7 @@ public class UpdateCommand {
         ContentValues cv = Mapper.objectToContentValues(entity);
         for (DbColumn pkCol : pks) cv.remove(pkCol.getColumnName());
 
-        String where = pks.stream().map(c -> q(c.getColumnName()) + " = ?").collect(Collectors.joining(" AND "));
+        String where = pks.stream().map(c -> qId(c.getColumnName()) + " = ?").collect(Collectors.joining(" AND "));
         String[] args = new String[pks.size()];
         try {
             for (int i = 0; i < pks.size(); i++) {

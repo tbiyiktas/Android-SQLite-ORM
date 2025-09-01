@@ -1,5 +1,7 @@
 package lib.persistence.command.definition;
 
+import static lib.persistence.SqlNames.qId;
+
 import lib.persistence.annotations.DbTableAnnotation;
 
 public class DropTableCommand {
@@ -21,15 +23,8 @@ public class DropTableCommand {
     public static DropTableCommand build(String tableName) {
         if (tableName == null || tableName.trim().isEmpty())
             throw new IllegalArgumentException("tableName zorunludur");
-        String q = "DROP TABLE IF EXISTS " + safeId(tableName) + ";";
+        String q = "DROP TABLE IF EXISTS " + qId(tableName) + ";";
         return new DropTableCommand(q);
-    }
-
-    private static String safeId(String id) {
-        String trimmed = id.trim();
-        if (!trimmed.matches("[A-Za-z_][A-Za-z0-9_]*"))
-            throw new IllegalArgumentException("Geçersiz identifier: " + id);
-        return trimmed;
     }
 
     public String getQuery() { return query; }

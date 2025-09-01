@@ -1,3 +1,4 @@
+// lib/persistence/command/definition/CreateTableCommand.java
 package lib.persistence.command.definition;
 
 import lib.persistence.annotations.DbTableAnnotation;
@@ -8,70 +9,61 @@ import lib.persistence.profile.Mapper;
 import java.util.ArrayList;
 import java.util.StringJoiner;
 
+import static lib.persistence.SqlNames.qId;
+
 public class CreateTableCommand {
-
     private final String query;
+    private CreateTableCommand(String query) { this.query = query; }
 
-    private CreateTableCommand(String query) {
-        this.query = query;
-    }
+    public static CreateTableCommand build(Class<?> type) { return build(type, (String[]) null); }
 
-    /** Basit kullanım: yalnızca entity'den tabloyu üretir. */
-    public static CreateTableCommand build(Class<?> type) {
-        return build(type, (String[]) null);
-    }
-
-    /**
-     * Tablo-level constraint eklemek için (örn. FOREIGN KEY) kullan.
-     * Ör: build(UserTodo.class, "FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE")
-     */
     public static CreateTableCommand build(Class<?> type, String... tableConstraints) {
         if (type == null) throw new IllegalArgumentException("type boş olamaz");
 
-        // Tablo adı
-        DbTableAnnotation ann = type.getAnnotation(DbTableAnnotation.class);
-        String tableName = (ann != null && !ann.name().trim().isEmpty())
-                ? ann.name().trim()
-                : type.getSimpleName();
-
-        // Kolonlar
+        String tableName = Mapper.getTableName(type); // annotation’dan geliyor
         ArrayList<DbColumn> cols = Mapper.classToDbColumns(type);
-        if (cols.isEmpty()) {
-            throw new IllegalStateException("Kolon tanımı bulunamadı: " + type.getName());
-        }
+        if (cols.isEmpty()) throw new IllegalStateException("Kolon tanımı yok: " + type.getName());
+
+        // PK’ları topla
+        ArrayList<DbColumn> pks = new ArrayList<>();
+        for (DbColumn c : cols) if (c.isPrimaryKey()) pks.add(c);
 
         StringJoiner defs = new StringJoiner(", ");
+        boolean singleIntegerIdentityPk = (pks.size() == 1
+                && pks.get(0).isIdentity()
+                && pks.get(0).getDataType() == DbDataType.INTEGER);
 
         for (DbColumn c : cols) {
             StringBuilder d = new StringBuilder();
-            d.append(c.getColumnName()).append(" ").append(toSqlType(c.getDataType()));
+            d.append(qId(c.getColumnName())).append(' ').append(toSqlType(c.getDataType()));
 
-            // PRIMARY KEY / AUTOINCREMENT (yalnızca INTEGER PK'da)
-            if (c.isPrimaryKey()) {
+            // Sadece tek PK varsa ve sütun düzeyinde ifade etmek istiyorsak:
+            if (pks.size() == 1 && pks.get(0) == c) {
                 d.append(" PRIMARY KEY");
-                if (c.isIdentity() && c.getDataType() == DbDataType.INTEGER) {
-                    d.append(" AUTOINCREMENT");
-                }
+                if (singleIntegerIdentityPk) d.append(" AUTOINCREMENT");
+                // NOT NULL: PK zaten NOT NULL kabul edilir; ayrıca eklemeye gerek yok.
+            } else {
+                // Diğer kolonlar için nullable kontrolü
+                if (!c.isNullable()) d.append(" NOT NULL");
             }
-
-            // NOT NULL
-            if (!c.isNullable()) {
-                d.append(" NOT NULL");
-            }
-
             defs.add(d.toString());
         }
 
-        // Tablo-level constraint’ler (opsiyonel)
+        // Bileşik PK varsa tablo düzeyi constraint ekle
+        if (pks.size() > 1) {
+            StringJoiner pkCols = new StringJoiner(", ");
+            for (DbColumn pk : pks) pkCols.add(qId(pk.getColumnName()));
+            defs.add("PRIMARY KEY (" + pkCols + ")");
+        }
+
+        // Opsiyonel tablo-level constraints (FK vs.)
         if (tableConstraints != null) {
             for (String tc : tableConstraints) {
-                if (tc != null && !tc.trim().isEmpty()) {
-                    defs.add(tc.trim());
-                }
+                if (tc != null && !tc.trim().isEmpty()) defs.add(tc.trim());
             }
         }
 
-        String sql = "CREATE TABLE IF NOT EXISTS " + tableName + " (" + defs + ");";
+        String sql = "CREATE TABLE IF NOT EXISTS " + qId(tableName) + " (" + defs + ");";
         return new CreateTableCommand(sql);
     }
 
@@ -84,8 +76,5 @@ public class CreateTableCommand {
             default:      return "TEXT";
         }
     }
-
-    public String getQuery() {
-        return query;
-    }
+    public String getQuery() { return query; }
 }

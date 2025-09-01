@@ -8,6 +8,8 @@ import lib.persistence.ADbContext;
 import lib.persistence.command.definition.CreateTableCommand;
 import lib.persistence.command.definition.CreateIndexCommand;
 import lib.persistence.command.definition.DropTableCommand;
+import lib.persistence.migration.Migrations;
+
 import com.example.adbkit.entities.Todo;
 
 public class DbContext extends ADbContext {
@@ -37,6 +39,8 @@ public class DbContext extends ADbContext {
 
     @Override
     protected void onUpgradeSchema(SQLiteDatabase db, int oldVersion, int newVersion) {
+       // Migrations.apply(db, oldVersion, newVersion);
+
         // Basit senaryoda drop + recreate
         db.execSQL(DropTableCommand.build(Todo.class).getQuery());
         onCreateSchema(db);

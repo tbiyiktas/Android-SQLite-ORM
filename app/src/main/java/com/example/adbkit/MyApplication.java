@@ -2,20 +2,22 @@ package com.example.adbkit;
 
 import android.app.Application;
 
+import lib.persistence.IDbContext;
+
 public class MyApplication extends Application {
-    private volatile DbContext dbContext; // lazy
+    private volatile IDbContext dbContextInstance; // lazy
 
     @Override
     public void onCreate() {
         super.onCreate();
-        dbContext = null; // lazy init
+        dbContextInstance = null; // lazy init
     }
 
     /** Lazy + thread-safe */
-    public synchronized DbContext getDbContext () {
-        if (dbContext == null) {
-            dbContext = new DbContext(getApplicationContext());
+    public synchronized IDbContext getDbContext () {
+        if (dbContextInstance == null) {
+            dbContextInstance = new DbContext(getApplicationContext());
         }
-        return dbContext;
+        return dbContextInstance;
     }
 }

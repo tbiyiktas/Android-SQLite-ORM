@@ -1,5 +1,7 @@
 package lib.persistence.command.manipulation;
 
+import static lib.persistence.SqlNames.qCol;
+
 import lib.persistence.annotations.DbTableAnnotation;
 
 import java.util.ArrayList;
@@ -37,7 +39,7 @@ public class DeleteSql {
         if (column == null || column.trim().isEmpty())
             throw new IllegalArgumentException("column zorunludur");
 
-        String clause = column.trim() + " = ?";
+        String clause =  qCol(column.trim()) + " = ?";
         if (!whereClauses.isEmpty()) {
             clause = pendingOp + " " + clause; // önceki koşullara bağla
         }

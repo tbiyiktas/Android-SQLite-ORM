@@ -88,21 +88,28 @@ public final class Mapper {
     }
 
     // --- Object → ContentValues ---
-    public static ContentValues objectToContentValues(Object obj) {
-        try {
-            ContentValues cv = new ContentValues();
-            for (DbColumn c : classToDbColumns(obj.getClass())) {
-// identity alanlar insert’te atlanır
-                if (c.isIdentity()) continue;
-                Field f = findField(obj.getClass(), c.getFieldName());
+    public static ContentValues objectToContentValues(Object entity) {
+        if (entity == null) throw new IllegalArgumentException("entity null");
+        Class<?> type = entity.getClass();
+        ContentValues cv = new ContentValues();
+
+        for (DbColumn col : classToDbColumns(type)) {
+            // Identity alanlar DB tarafından set edilir → atla
+            if (col.isIdentity()) continue;
+
+            Object value;
+            try {
+                Field f = findField(type, col.getFieldName());
                 f.setAccessible(true);
-                Object val = f.get(obj);
-                putValue(cv, c, val);
+                value = f.get(entity);
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException("Alan okunamadı: " + col.getFieldName(), e);
             }
-            return cv;
-        } catch (Exception e) {
-            throw new RuntimeException("objectToContentValues hata", e);
+
+            // Tek noktadan tip yazımı
+            putInContentValues(cv, col, value);
         }
+        return cv;
     }
 
     public static Field findField(Class<?> type, String fieldName) throws NoSuchFieldException {
@@ -114,30 +121,30 @@ public final class Mapper {
         throw new NoSuchFieldException(fieldName);
     }
 
-    private static void putValue(ContentValues cv, DbColumn c, Object val) {
-        if (val == null) {
-            cv.putNull(c.getColumnName());
-            return;
-        }
-        switch (c.getDataType()) {
-            case INTEGER:
-                if (val instanceof Boolean) cv.put(c.getColumnName(), ((Boolean) val) ? 1 : 0);
-                else if (val instanceof Number) cv.put(c.getColumnName(), ((Number) val).longValue());
-                else cv.put(c.getColumnName(), Long.parseLong(val.toString()));
-                break;
-            case REAL:
-                if (val instanceof Number) cv.put(c.getColumnName(), ((Number) val).doubleValue());
-                else cv.put(c.getColumnName(), Double.parseDouble(val.toString()));
-                break;
-            case BLOB:
-                cv.put(c.getColumnName(), (byte[]) val); break;
-            case TEXT:
-            default:
-                if (val instanceof LocalDate) cv.put(c.getColumnName(), ((LocalDate) val).format(ISO_DATE));
-                else if (val instanceof LocalDateTime) cv.put(c.getColumnName(), ((LocalDateTime) val).format(ISO_DATE_TIME));
-                else cv.put(c.getColumnName(), String.valueOf(val));
-        }
-    }
+//    private static void putValue(ContentValues cv, DbColumn c, Object val) {
+//        if (val == null) {
+//            cv.putNull(c.getColumnName());
+//            return;
+//        }
+//        switch (c.getDataType()) {
+//            case INTEGER:
+//                if (val instanceof Boolean) cv.put(c.getColumnName(), ((Boolean) val) ? 1 : 0);
+//                else if (val instanceof Number) cv.put(c.getColumnName(), ((Number) val).longValue());
+//                else cv.put(c.getColumnName(), Long.parseLong(val.toString()));
+//                break;
+//            case REAL:
+//                if (val instanceof Number) cv.put(c.getColumnName(), ((Number) val).doubleValue());
+//                else cv.put(c.getColumnName(), Double.parseDouble(val.toString()));
+//                break;
+//            case BLOB:
+//                cv.put(c.getColumnName(), (byte[]) val); break;
+//            case TEXT:
+//            default:
+//                if (val instanceof LocalDate) cv.put(c.getColumnName(), ((LocalDate) val).format(ISO_DATE));
+//                else if (val instanceof LocalDateTime) cv.put(c.getColumnName(), ((LocalDateTime) val).format(ISO_DATE_TIME));
+//                else cv.put(c.getColumnName(), String.valueOf(val));
+//        }
+//    }
 
     // --- Cursor → Object ---
     public static <T> T cursorToObject(Cursor cursor, Class<T> type) {

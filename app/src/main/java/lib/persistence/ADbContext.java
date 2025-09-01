@@ -12,14 +12,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class ADbContext extends SQLiteOpenHelper {
+public abstract class ADbContext extends SQLiteOpenHelper implements IDbContext {
 
     private final ExecutorService readPool;
     private final ExecutorService writePool;
@@ -42,8 +40,8 @@ public abstract class ADbContext extends SQLiteOpenHelper {
 //        });
 
         this.readPool = new ThreadPoolExecutor(
-                cfg.readThreads,                       // corePoolSize
-                cfg.readThreads,                       // maximumPoolSize
+                reads,                       // corePoolSize
+                reads,                       // maximumPoolSize
                 0L, TimeUnit.MILLISECONDS,             // keepAliveTime
                 new LinkedBlockingQueue<>(256),        // bounded queue (geri basınç)
                 r -> {                                 // ThreadFactory (lambda)
@@ -139,6 +137,7 @@ public abstract class ADbContext extends SQLiteOpenHelper {
     protected abstract void onUpgradeSchema(@NonNull SQLiteDatabase db, int oldVersion, int newVersion);
 
     // --- Çalıştırıcı
+    @Override
     public final <T> void runDbOperation(@NonNull DbWork<T> work,
                                          @Nullable DbCallback<T> callback,
                                          boolean writeTransaction) {
@@ -161,14 +160,16 @@ public abstract class ADbContext extends SQLiteOpenHelper {
             }
             if (callback != null) {
                 DbResult<T> out = result;
-                mainHandler.post(() -> callback.onResult(out));
+                //mainHandler.post(() -> callback.onResult(out));
+                mainHandler.post(() -> {
+                    try {
+                        callback.onResult(out);
+                    } catch (Throwable t) {
+                        android.util.Log.e("ADbContext", "Callback error", t);
+                    }
+                });
             }
         });
-    }
-
-    @FunctionalInterface
-    public interface DbWork<T> {
-        @NonNull DbResult<T> perform(@NonNull SQLiteDatabase db) throws Exception;
     }
 
     @Override

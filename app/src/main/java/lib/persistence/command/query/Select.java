@@ -9,6 +9,9 @@ import java.util.function.Function;
 
 import lib.persistence.profile.Mapper;
 
+import static lib.persistence.SqlNames.qCol;
+import static lib.persistence.SqlNames.qId;
+
 /**
  * Güvenli, parametreli ve tipli SELECT builder.
  * - from(Class<T>) -> tablo adı Mapper'dan gelir
@@ -64,7 +67,9 @@ public final class Select<T> {
         if (cols != null) {
             for (String c : cols) {
                 if (c == null || c.trim().isEmpty()) continue;
-                columns.add(qColOrStar(c.trim()));
+                //columns.add(qColOrStar(c.trim()));
+                String cc = c.trim();
+                columns.add("*".equals(cc) ? "*" : qCol(cc)); // ← SqlNames
             }
         }
         return this;
@@ -118,10 +123,12 @@ public final class Select<T> {
     }
 
     public Select<T> whereEq(String col, Object val) {
+        //return (val == null) ? whereNull(col) : whereRaw(qCol(col) + " = ?", val);
         return (val == null) ? whereNull(col) : whereRaw(qCol(col) + " = ?", val);
     }
 
     public Select<T> whereNe(String col, Object val) {
+        //return (val == null) ? whereNotNull(col) : whereRaw(qCol(col) + " <> ?", val);
         return (val == null) ? whereNotNull(col) : whereRaw(qCol(col) + " <> ?", val);
     }
 
@@ -261,16 +268,16 @@ public final class Select<T> {
     }
 
     /** Kolon identifier'ını (ve table.col şeklini) backtick'le kaçışlar. '*' ise olduğu gibi döner. */
-    private static String qCol(String col) {
-        String c = col.trim();
-        if ("*".equals(c)) return "*";
-        int dot = c.indexOf('.');
-        if (dot > 0 && dot < c.length() - 1) {
-            // table.col
-            return qId(c.substring(0, dot)) + "." + qId(c.substring(dot + 1));
-        }
-        return qId(c);
-    }
+//    private static String qCol(String col) {
+//        String c = col.trim();
+//        if ("*".equals(c)) return "*";
+//        int dot = c.indexOf('.');
+//        if (dot > 0 && dot < c.length() - 1) {
+//            // table.col
+//            return qId(c.substring(0, dot)) + "." + qId(c.substring(dot + 1));
+//        }
+//        return qId(c);
+//    }
 
     /** Kolon listelerinde '*' destekler. */
     private static String qColOrStar(String col) {

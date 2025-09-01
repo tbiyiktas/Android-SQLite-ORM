@@ -10,7 +10,9 @@ public final class RepositoryFactory {
     private RepositoryFactory() {}
 
     public static TodoRepository getTodoRepository(Context appContext) {
-        return new TodoRepository(((MyApplication)appContext.getApplicationContext()).getDbContext());
+        MyApplication application = (MyApplication) appContext.getApplicationContext();
+        // TodoRepository constructor'ı artık IDbContext almalı
+        return new TodoRepository(application.getDbContext());
     }
 }
 /*

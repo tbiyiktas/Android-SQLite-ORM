@@ -1,6 +1,9 @@
 // lib/persistence/command/manipulation/DeleteCommand.java
 package lib.persistence.command.manipulation;
 
+import static lib.persistence.SqlNames.qCol;
+import static lib.persistence.SqlNames.qId;
+
 import lib.persistence.profile.DbColumn;
 import lib.persistence.profile.Mapper;
 
@@ -38,7 +41,7 @@ public class DeleteCommand {
         if (pks.isEmpty()) throw new IllegalStateException("Primary key tanımı yok: " + type.getName());
 
         String where = pks.stream()
-                .map(c -> q(c.getColumnName()) + " = ?")
+                .map(c -> qCol(c.getColumnName()) + " = ?")
                 .collect(Collectors.joining(" AND "));
 
         String[] args = new String[pks.size()];
@@ -54,7 +57,7 @@ public class DeleteCommand {
             throw new RuntimeException("PK değer(ler)i okunamadı", e);
         }
 
-        return new DeleteCommand(q(rawTable), where, args);
+        return new DeleteCommand(qId(rawTable), where, args);
     }
 
     /**
@@ -74,7 +77,7 @@ public class DeleteCommand {
         }
 
         String where = pks.stream()
-                .map(c -> q(c.getColumnName()) + " = ?")
+                .map(c -> qCol(c.getColumnName()) + " = ?")
                 .collect(Collectors.joining(" AND "));
 
         String[] args = new String[pks.size()];
@@ -84,17 +87,16 @@ public class DeleteCommand {
             args[i] = String.valueOf(v);
         }
 
-        return new DeleteCommand(q(rawTable), where, args);
+        return new DeleteCommand(qId(rawTable), where, args);
     }
 
     /** Tüm satırları sil (WHERE yok) – dikkatli kullanın. */
     public static DeleteCommand buildAll(Class<?> type) {
         if (type == null) throw new IllegalArgumentException("type null olamaz");
         String rawTable = Mapper.getTableName(type);
-        return new DeleteCommand(q(rawTable), null, null);
+        return new DeleteCommand(qId(rawTable), null, null);
     }
 
-    private static String q(String id) { return "`" + id + "`"; }
 
     public String getTableName() { return tableName; }
     public String getWhereClause() { return whereClause; }

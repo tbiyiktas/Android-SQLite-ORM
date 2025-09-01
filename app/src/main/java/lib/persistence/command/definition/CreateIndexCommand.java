@@ -1,5 +1,8 @@
 package lib.persistence.command.definition;
 
+import static lib.persistence.SqlNames.qId;
+import static lib.persistence.SqlNames.safeId;
+
 import lib.persistence.annotations.DbTableAnnotation;
 
 public class CreateIndexCommand {
@@ -33,7 +36,7 @@ public class CreateIndexCommand {
             String col = columns[i];
             if (col == null || col.trim().isEmpty())
                 throw new IllegalArgumentException("geçersiz kolon adı");
-            queryBuilder.append(safeId(col));
+            queryBuilder.append(qId(col));
             if (i < columns.length - 1) queryBuilder.append(", ");
         }
         queryBuilder.append(");");
@@ -41,13 +44,6 @@ public class CreateIndexCommand {
         return new CreateIndexCommand(queryBuilder.toString());
     }
 
-    /** SQLite identifier için basit güvenlik filtresi (harf/rakam/_). İstersen kaldır. */
-    private static String safeId(String id) {
-        String trimmed = id.trim();
-        if (!trimmed.matches("[A-Za-z_][A-Za-z0-9_]*"))
-            throw new IllegalArgumentException("Geçersiz identifier: " + id);
-        return trimmed;
-    }
 
     public String getQuery() {
         return query;

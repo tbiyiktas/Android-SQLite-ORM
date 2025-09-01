@@ -21,10 +21,10 @@ import lib.persistence.profile.DbColumn;
 import lib.persistence.profile.Mapper;
 
 public abstract class GenericRepository<T> {
-    protected final DbContext dbContext;
+    protected final IDbContext  dbContext;
     protected final Class<T> type;
 
-    protected GenericRepository(DbContext ctx, Class<T> type) {
+    protected GenericRepository(IDbContext ctx, Class<T> type) {
         this.dbContext = ctx;
         this.type = type;
     }

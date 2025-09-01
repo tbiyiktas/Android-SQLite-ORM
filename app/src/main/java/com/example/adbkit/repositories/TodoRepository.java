@@ -1,6 +1,7 @@
 package com.example.adbkit.repositories;
 
 import lib.persistence.GenericRepository;
+import lib.persistence.IDbContext;
 import lib.persistence.command.query.Select;
 import lib.persistence.command.query.SelectQuery;
 import com.example.adbkit.entities.Todo;
@@ -8,7 +9,7 @@ import com.example.adbkit.DbContext;
 
 public class TodoRepository extends GenericRepository<Todo> {
 
-    public TodoRepository(DbContext context) {
+    public TodoRepository(IDbContext context) {
         super(context, Todo.class);
     }
 
