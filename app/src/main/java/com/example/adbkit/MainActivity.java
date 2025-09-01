@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
         todoRepository.insert(newTodo, new DbCallback<Todo>() {
             @Override
             public void onResult(DbResult<Todo> result) {
-                if (result instanceof DbResult.Success) {
+                if (result.isSuccess()) {
                     Todo createdTodo = ((DbResult.Success<Todo>) result).getData();
                     Log.d(TAG, "CREATE - Başarılı: " + createdTodo);
 
@@ -120,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
         todoRepository.update(todoToUpdate, new DbCallback<Todo>() {
             @Override
             public void onResult(DbResult<Todo> result) {
-                if (result instanceof DbResult.Success) {
+                if (result.isSuccess()) {
                     Todo updatedTodo = ((DbResult.Success<Todo>) result).getData();
                     Log.d(TAG, "UPDATE - Başarılı: " + updatedTodo);
 
@@ -140,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
         todoRepository.getById(todoId, new DbCallback<Todo>() {
             @Override
             public void onResult(DbResult<Todo> result) {
-                if (result instanceof DbResult.Success) {
+                if (result.isSuccess()) {
                     Todo foundTodo = ((DbResult.Success<Todo>) result).getData();
                     if (foundTodo != null) {
                         Log.d(TAG, "READ BY ID - Başarılı: " + foundTodo);
@@ -163,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
         todoRepository.delete(todoToDelete, new DbCallback<Todo>() {
             @Override
             public void onResult(DbResult<Todo> result) {
-                if (result instanceof DbResult.Success) {
+                if (result.isSuccess()) {
                     Log.d(TAG, "DELETE - Başarılı: Todo silindi.");
                     // Son kontrol için tüm todoları tekrar okuyalım
                     readAllTodos();

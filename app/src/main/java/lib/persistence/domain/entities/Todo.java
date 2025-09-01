@@ -3,7 +3,7 @@ package lib.persistence.domain.entities;
 import lib.persistence.annotations.DbColumnAnnotation;
 import lib.persistence.annotations.DbTableAnnotation;
 
-@DbTableAnnotation
+@DbTableAnnotation(name = "todos")
 public class Todo {
     @DbColumnAnnotation(ordinal = 1,isPrimaryKey = true, isIdentity = true)
     public int id;

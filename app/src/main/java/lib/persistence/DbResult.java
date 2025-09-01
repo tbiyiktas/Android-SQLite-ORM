@@ -40,6 +40,11 @@ public abstract class DbResult<T> {
             this.errorMessage = errorMessage;
         }
 
+        public Error(@Nullable Exception exception) {
+            this.exception = exception;
+            this.errorMessage = exception.getMessage();
+        }
+
         public Exception getException() {
             return exception;
         }

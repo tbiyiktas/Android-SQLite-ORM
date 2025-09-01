@@ -2,8 +2,18 @@ package lib.persistence;
 
 import android.content.Context;
 
+import com.example.adbkit.MyApplication;
+
 import lib.persistence.repositories.TodoRepository;
 
+public final class RepositoryFactory {
+    private RepositoryFactory() {}
+
+    public static TodoRepository getTodoRepository(Context appContext) {
+        return new TodoRepository(((MyApplication)appContext.getApplicationContext()).getDbContext());
+    }
+}
+/*
 public class RepositoryFactory {
 
     // DbContext sınıfınızın AppDbContext olduğunu varsayıyoruz
@@ -23,3 +33,4 @@ public class RepositoryFactory {
         return new TodoRepository(getDbContextInstance(context.getApplicationContext()));
     }
 }
+*/

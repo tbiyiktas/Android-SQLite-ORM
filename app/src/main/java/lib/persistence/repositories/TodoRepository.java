@@ -15,7 +15,7 @@ import lib.persistence.profile.Mapper;
 
 public class TodoRepository extends GenericRepository<Todo> {
 
-    public TodoRepository(ADbContext context) {
+    public TodoRepository(DbContext context) {
         super(context, Todo.class);
     }
 

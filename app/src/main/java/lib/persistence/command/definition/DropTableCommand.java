@@ -3,6 +3,7 @@ package lib.persistence.command.definition;
 import lib.persistence.annotations.DbTableAnnotation;
 
 public class DropTableCommand {
+
     private final String query;
 
     private DropTableCommand(String query) {
@@ -10,12 +11,26 @@ public class DropTableCommand {
     }
 
     public static DropTableCommand build(Class<?> type) {
-        DbTableAnnotation annotation = type.getAnnotation(DbTableAnnotation.class);
-        String tableName = (annotation != null && !annotation.name().isEmpty()) ? annotation.name() : type.getSimpleName();
-        return new DropTableCommand("DROP TABLE IF EXISTS " + tableName);
+        DbTableAnnotation ann = type.getAnnotation(DbTableAnnotation.class);
+        String tableName = (ann != null && !ann.name().isEmpty())
+                ? ann.name()
+                : type.getSimpleName();
+        return build(tableName);
     }
 
-    public String getQuery() {
-        return query;
+    public static DropTableCommand build(String tableName) {
+        if (tableName == null || tableName.trim().isEmpty())
+            throw new IllegalArgumentException("tableName zorunludur");
+        String q = "DROP TABLE IF EXISTS " + safeId(tableName) + ";";
+        return new DropTableCommand(q);
     }
+
+    private static String safeId(String id) {
+        String trimmed = id.trim();
+        if (!trimmed.matches("[A-Za-z_][A-Za-z0-9_]*"))
+            throw new IllegalArgumentException("Geçersiz identifier: " + id);
+        return trimmed;
+    }
+
+    public String getQuery() { return query; }
 }

@@ -1,129 +1,91 @@
 package lib.persistence.command.definition;
 
-
-import java.util.ArrayList;
-
+import lib.persistence.annotations.DbTableAnnotation;
 import lib.persistence.profile.DbColumn;
+import lib.persistence.profile.DbDataType;
 import lib.persistence.profile.Mapper;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.StringJoiner;
 
 public class CreateTableCommand {
-    private Class<?> type;
-    private String tableName;
-    private String query;
 
-    private CreateTableCommand() {
+    private final String query;
+
+    private CreateTableCommand(String query) {
+        this.query = query;
     }
 
+    /** Basit kullanım: yalnızca entity'den tabloyu üretir. */
     public static CreateTableCommand build(Class<?> type) {
-        CreateTableCommand command = new CreateTableCommand();
-        command.type = type;
-        command.tableName = Mapper.getTableName(type);
-
-        List<DbColumn> columns = Mapper.classToDbColumns(type);
-
-        // Her bir sütun için SQL tanımını oluşturur ve listeye ekler
-        ArrayList<String> columnDefinitions = columns.stream()
-                .map(column -> {
-                    StringBuilder columnDef = new StringBuilder();
-                    columnDef.append(column.getColumnName()).append(" ").append(column.getDataType());
-                    if (column.isPrimaryKey()) {
-                        columnDef.append(" PRIMARY KEY");
-                        // Sadece primary key ise AUTOINCREMENT eklenir
-                        if (column.isIdentity()) {
-                            columnDef.append(" AUTOINCREMENT");
-                        }
-                    }
-                    if (!column.isNullable()) {
-                        columnDef.append(" NOT NULL");
-                    }
-                    return columnDef.toString();
-                })
-                .collect(Collectors.toCollection(ArrayList::new));
-
-        // Tüm sütun tanımlarını birleştirir
-        String columnsString = String.join(", ", columnDefinitions);
-
-        // Nihai sorguyu oluşturur
-        StringBuilder queryBuilder = new StringBuilder();
-        queryBuilder.append("CREATE TABLE IF NOT EXISTS ")
-                .append(command.tableName).append(" (")
-                .append(columnsString)
-                .append(");");
-
-        command.query = queryBuilder.toString();
-        return command;
+        return build(type, (String[]) null);
     }
 
-    public Class<?> getType() {
-        return type;
-    }
+    /**
+     * Tablo-level constraint eklemek için (örn. FOREIGN KEY) kullan.
+     * Ör: build(UserTodo.class, "FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE")
+     */
+    public static CreateTableCommand build(Class<?> type, String... tableConstraints) {
+        if (type == null) throw new IllegalArgumentException("type boş olamaz");
 
-    public String getTableName() {
-        return tableName;
-    }
+        // Tablo adı
+        DbTableAnnotation ann = type.getAnnotation(DbTableAnnotation.class);
+        String tableName = (ann != null && !ann.name().trim().isEmpty())
+                ? ann.name().trim()
+                : type.getSimpleName();
 
-    public String getQuery() {
-        return query;
-    }
-}
+        // Kolonlar
+        ArrayList<DbColumn> cols = Mapper.classToDbColumns(type);
+        if (cols.isEmpty()) {
+            throw new IllegalStateException("Kolon tanımı bulunamadı: " + type.getName());
+        }
 
-/*
-public class CreateTableCommand {
-    private Class<?> type;
-    private String tableName;
-    private String query;
+        StringJoiner defs = new StringJoiner(", ");
 
-    private CreateTableCommand() {
-    }
+        for (DbColumn c : cols) {
+            StringBuilder d = new StringBuilder();
+            d.append(c.getColumnName()).append(" ").append(toSqlType(c.getDataType()));
 
-    public static CreateTableCommand build(Class<?> type) {
-        CreateTableCommand command = new CreateTableCommand();
-        command.type = type;
-        command.tableName = Mapper.getTableName(type);
-
-        ArrayList<DbColumn> columns = Mapper.classToDbColumns(type);
-
-        StringBuilder queryBuilder = new StringBuilder();
-        queryBuilder.append("CREATE TABLE IF NOT EXISTS ")
-                .append(command.tableName).append(" (");
-
-        for (int i = 0; i < columns.size(); i++) {
-            DbColumn column = columns.get(i);
-            queryBuilder.append(column.getColumnName()).append(" ").append(column.getDataType());
-
-            if (column.isPrimaryKey()) {
-                queryBuilder.append(" PRIMARY KEY");
-            }
-            if (column.isIdentity()) {
-                queryBuilder.append(" AUTOINCREMENT");
-            }
-            if (!column.isNullable()) {
-                queryBuilder.append(" NOT NULL");
+            // PRIMARY KEY / AUTOINCREMENT (yalnızca INTEGER PK'da)
+            if (c.isPrimaryKey()) {
+                d.append(" PRIMARY KEY");
+                if (c.isIdentity() && c.getDataType() == DbDataType.INTEGER) {
+                    d.append(" AUTOINCREMENT");
+                }
             }
 
-            if (i < columns.size() - 1) {
-                queryBuilder.append(", ");
+            // NOT NULL
+            if (!c.isNullable()) {
+                d.append(" NOT NULL");
+            }
+
+            defs.add(d.toString());
+        }
+
+        // Tablo-level constraint’ler (opsiyonel)
+        if (tableConstraints != null) {
+            for (String tc : tableConstraints) {
+                if (tc != null && !tc.trim().isEmpty()) {
+                    defs.add(tc.trim());
+                }
             }
         }
-        queryBuilder.append(");");
 
-        command.query = queryBuilder.toString();
-        return command;
+        String sql = "CREATE TABLE IF NOT EXISTS " + tableName + " (" + defs + ");";
+        return new CreateTableCommand(sql);
     }
 
-    public Class<?> getType() {
-        return type;
-    }
-
-    public String getTableName() {
-        return tableName;
+    private static String toSqlType(DbDataType t) {
+        switch (t) {
+            case INTEGER: return "INTEGER";
+            case REAL:    return "REAL";
+            case BLOB:    return "BLOB";
+            case TEXT:
+            default:      return "TEXT";
+        }
     }
 
     public String getQuery() {
         return query;
     }
 }
-*/
