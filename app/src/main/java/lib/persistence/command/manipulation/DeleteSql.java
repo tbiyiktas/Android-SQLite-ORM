@@ -2,10 +2,10 @@ package lib.persistence.command.manipulation;
 
 import static lib.persistence.SqlNames.qCol;
 
-import lib.persistence.annotations.DbTableAnnotation;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import lib.persistence.annotations.DbTableAnnotation;
 
 public class DeleteSql {
     private final Class<?> type;

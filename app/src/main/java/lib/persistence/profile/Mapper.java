@@ -4,22 +4,27 @@ package lib.persistence.profile;
 import android.content.ContentValues;
 import android.database.Cursor;
 
-
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 import lib.persistence.annotations.DbColumnAnnotation;
+import lib.persistence.annotations.DbConverterAnnotation;
 import lib.persistence.annotations.DbTableAnnotation;
+import lib.persistence.converters.ConverterRegistry;
+import lib.persistence.converters.TypeConverter;
 
 public final class Mapper {
     private static final Map<Class<?>, List<DbColumn>> COLUMNS_CACHE = new ConcurrentHashMap<>();
     private static final Map<Class<?>, String> TABLE_NAME_CACHE = new ConcurrentHashMap<>();
-
+    private static final Map<Field, TypeConverter<?, ?>> FIELD_CONVERTER_CACHE = new ConcurrentHashMap<>();
 
     private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_DATE;
     private static final DateTimeFormatter ISO_DATE_TIME = DateTimeFormatter.ISO_DATE_TIME;
@@ -56,7 +61,7 @@ public final class Mapper {
                 f.setAccessible(true);
                 String columnName = ann.name().isEmpty() ? f.getName() : ann.name();
                 DbDataType dataType = toDbDataType(f.getType());
-                list.add(new DbColumn(
+                DbColumn column = new DbColumn(
                         ann.ordinal(),
                         f.getName(),
                         columnName,
@@ -64,7 +69,22 @@ public final class Mapper {
                         ann.isPrimaryKey(),
                         ann.isIdentity(),
                         ann.isNullable()
-                ));
+                );
+
+                DbConverterAnnotation convAnn = f.getAnnotation(DbConverterAnnotation.class);
+
+                if (convAnn != null) {
+                    TypeConverter<?, ?> conv = ConverterRegistry.getOrCreate(convAnn.converter());
+                    // DbColumn'a (varsa) sqliteType işle
+                    try {
+                        if (column.getSqliteType() == null) {
+                            column.setSqliteType(conv.sqliteType()); // "TEXT" | "INTEGER" | "REAL" | "BLOB"
+                        }
+                    } catch (NoSuchMethodError | Exception ignored) {
+                        // DbColumn'a sqliteType daha eklenmediyse sessiz geç (DDL tarafında infer edilir)
+                    }
+                }
+                list.add(column);
             }
             cur = cur.getSuperclass();
         }
@@ -88,26 +108,63 @@ public final class Mapper {
     }
 
     // --- Object → ContentValues ---
-    public static ContentValues objectToContentValues(Object entity) {
-        if (entity == null) throw new IllegalArgumentException("entity null");
-        Class<?> type = entity.getClass();
+//    public static ContentValues objectToContentValues(Object entity) {
+//        if (entity == null) throw new IllegalArgumentException("entity null");
+//        Class<?> type = entity.getClass();
+//        ContentValues cv = new ContentValues();
+//
+//        for (DbColumn col : classToDbColumns(type)) {
+//            // Identity alanlar DB tarafından set edilir → atla
+//            if (col.isIdentity()) continue;
+//
+//            Object value;
+//            try {
+//                Field f = findField(type, col.getFieldName());
+//                f.setAccessible(true);
+//                value = f.get(entity);
+//            } catch (ReflectiveOperationException e) {
+//                throw new RuntimeException("Alan okunamadı: " + col.getFieldName(), e);
+//            }
+//
+//            // Tek noktadan tip yazımı
+//            putInContentValues(cv, col, value);
+//        }
+//        return cv;
+//    }
+
+    public static ContentValues objectToContentValues(Object object) {
         ContentValues cv = new ContentValues();
+        List<DbColumn> columns = classToDbColumns(object.getClass());
+        try {
+            for (DbColumn column : columns) {
+                if (column.isIdentity()) continue;
 
-        for (DbColumn col : classToDbColumns(type)) {
-            // Identity alanlar DB tarafından set edilir → atla
-            if (col.isIdentity()) continue;
-
-            Object value;
-            try {
-                Field f = findField(type, col.getFieldName());
+                Field f = findField(object.getClass(), column.getFieldName());
                 f.setAccessible(true);
-                value = f.get(entity);
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException("Alan okunamadı: " + col.getFieldName(), e);
-            }
+                Object value = f.get(object);
 
-            // Tek noktadan tip yazımı
-            putInContentValues(cv, col, value);
+                DbConverterAnnotation convAnn = f.getAnnotation(DbConverterAnnotation.class);
+                if (convAnn != null) {
+                    TypeConverter<?, ?> conv = FIELD_CONVERTER_CACHE.computeIfAbsent(
+                            f, k -> ConverterRegistry.getOrCreate(convAnn.converter())
+                    );
+                    @SuppressWarnings({"rawtypes","unchecked"})
+                    Object dbVal = ((TypeConverter) conv).toDatabaseValue(value);
+                    // Metadata tarafında sqliteType boşsa doldur
+                    try {
+                        if (column.getSqliteType() == null) {
+                            column.setSqliteType(conv.sqliteType());
+                        }
+                    } catch (NoSuchMethodError ignored) {}
+                    // Anahtar/Değer yaz
+                    putInContentValues(cv, column, dbVal);
+                } else {
+                    // Mevcut yol
+                    putInContentValues(cv, column, value);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("objectToContentValues hata", e);
         }
         return cv;
     }
@@ -154,11 +211,59 @@ public final class Mapper {
             for (DbColumn c : cols) {
                 int idx = cursor.getColumnIndex(c.getColumnName());
                 if (idx < 0) continue; // seçilmemiş olabilir
-                setFieldValue(instance, c, cursor, idx);
+
+                Field f = findField(type, c.getFieldName());
+                f.setAccessible(true);
+
+                // Converter var mı?
+                DbConverterAnnotation convAnn = f.getAnnotation(DbConverterAnnotation.class);
+                if (convAnn != null) {
+                    TypeConverter<?, ?> conv = FIELD_CONVERTER_CACHE.computeIfAbsent(
+                            f, k -> ConverterRegistry.getOrCreate(convAnn.converter())
+                    );
+                    // sqliteType: önce metadata (DbColumn), yoksa converter bildirimi
+                    String sType;
+                    try {
+                        sType = (c.getSqliteType() != null) ? c.getSqliteType() : conv.sqliteType();
+                    } catch (NoSuchMethodError e) {
+                        sType = "TEXT";
+                    }
+                    Object dbVal = readBySqliteType(cursor, idx, sType);
+                    @SuppressWarnings({"rawtypes","unchecked"})
+                    Object modelVal = ((TypeConverter) conv).fromDatabaseValue(dbVal);
+                    f.set(instance, modelVal);
+                } else {
+                    // Eski yol (primitive/string mapping)
+                    setFieldValue(instance, c, cursor, idx);
+                }
+
+               // setFieldValue(instance, c, cursor, idx);
             }
             return instance;
         } catch (Exception e) {
             throw new RuntimeException("cursorToObject hata", e);
+        }
+    }
+
+    // YENİ: sqliteType'a göre Cursor'dan ham değer oku (INTEGER→getLong, REAL→getDouble, TEXT→getString, BLOB→getBlob)
+    private static Object readBySqliteType(Cursor c, int idx, String sqliteType) {
+        if (c.isNull(idx)) return null;
+        if (sqliteType != null) {
+            String t = sqliteType.toUpperCase(Locale.ROOT);
+            switch (t) {
+                case "INTEGER": return c.getLong(idx);   // ÖNEMLİ: long
+                case "REAL":    return c.getDouble(idx);
+                case "TEXT":    return c.getString(idx);
+                case "BLOB":    return c.getBlob(idx);
+            }
+        }
+        // Tip bilinmiyorsa Cursor'dan sez
+        switch (c.getType(idx)) {
+            case Cursor.FIELD_TYPE_INTEGER: return c.getLong(idx);
+            case Cursor.FIELD_TYPE_FLOAT:   return c.getDouble(idx);
+            case Cursor.FIELD_TYPE_STRING:  return c.getString(idx);
+            case Cursor.FIELD_TYPE_BLOB:    return c.getBlob(idx);
+            default: return null;
         }
     }
 

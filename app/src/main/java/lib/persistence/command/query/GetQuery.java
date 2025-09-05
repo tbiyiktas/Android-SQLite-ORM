@@ -2,10 +2,10 @@ package lib.persistence.command.query;
 
 import static lib.persistence.SqlNames.qId;
 
+import java.util.ArrayList;
+
 import lib.persistence.profile.DbColumn;
 import lib.persistence.profile.Mapper;
-
-import java.util.ArrayList;
 
 /**
  * Tekil kayıt okumak için basit SELECT … WHERE PK = ? LIMIT 1 sorgusu.

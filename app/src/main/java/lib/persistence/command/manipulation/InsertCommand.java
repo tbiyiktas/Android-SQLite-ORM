@@ -2,6 +2,7 @@ package lib.persistence.command.manipulation;
 
 
 import android.content.ContentValues;
+
 import lib.persistence.profile.Mapper;
 
 

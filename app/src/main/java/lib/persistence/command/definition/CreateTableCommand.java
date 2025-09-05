@@ -1,21 +1,25 @@
 // lib/persistence/command/definition/CreateTableCommand.java
 package lib.persistence.command.definition;
 
-import lib.persistence.annotations.DbTableAnnotation;
-import lib.persistence.profile.DbColumn;
-import lib.persistence.profile.DbDataType;
-import lib.persistence.profile.Mapper;
+import static lib.persistence.SqlNames.qId;
 
 import java.util.ArrayList;
 import java.util.StringJoiner;
 
-import static lib.persistence.SqlNames.qId;
+import lib.persistence.profile.DbColumn;
+import lib.persistence.profile.DbDataType;
+import lib.persistence.profile.Mapper;
 
 public class CreateTableCommand {
     private final String query;
-    private CreateTableCommand(String query) { this.query = query; }
 
-    public static CreateTableCommand build(Class<?> type) { return build(type, (String[]) null); }
+    private CreateTableCommand(String query) {
+        this.query = query;
+    }
+
+    public static CreateTableCommand build(Class<?> type) {
+        return build(type, (String[]) null);
+    }
 
     public static CreateTableCommand build(Class<?> type, String... tableConstraints) {
         if (type == null) throw new IllegalArgumentException("type boş olamaz");
@@ -35,7 +39,8 @@ public class CreateTableCommand {
 
         for (DbColumn c : cols) {
             StringBuilder d = new StringBuilder();
-            d.append(qId(c.getColumnName())).append(' ').append(toSqlType(c.getDataType()));
+            //d.append(qId(c.getColumnName())).append(' ').append(toSqlType(c.getDataType()));
+            d.append(qId(c.getColumnName())).append(' ').append(columnSqlType(c));
 
             // Sadece tek PK varsa ve sütun düzeyinde ifade etmek istiyorsak:
             if (pks.size() == 1 && pks.get(0) == c) {
@@ -67,14 +72,28 @@ public class CreateTableCommand {
         return new CreateTableCommand(sql);
     }
 
+    // YENİ: Converter bildirimi varsa onu kullan; yoksa mevcut DbDataType -> SQL mapping
+    private static String columnSqlType(DbColumn c) {
+        String fromConverter = c.getSqliteType();
+        if (fromConverter != null && !fromConverter.isEmpty()) return fromConverter;
+        return toSqlType(c.getDataType());
+    }
+
     private static String toSqlType(DbDataType t) {
         switch (t) {
-            case INTEGER: return "INTEGER";
-            case REAL:    return "REAL";
-            case BLOB:    return "BLOB";
+            case INTEGER:
+                return "INTEGER";
+            case REAL:
+                return "REAL";
+            case BLOB:
+                return "BLOB";
             case TEXT:
-            default:      return "TEXT";
+            default:
+                return "TEXT";
         }
     }
-    public String getQuery() { return query; }
+
+    public String getQuery() {
+        return query;
+    }
 }
