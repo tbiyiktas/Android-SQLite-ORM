@@ -1,4 +1,6 @@
-package com.example.adbkit.entities;
+package com.example.adbkit.repositories;
+
+import com.example.adbkit.entities.Event;
 
 import lib.persistence.GenericRepository;
 import lib.persistence.IDbContext;

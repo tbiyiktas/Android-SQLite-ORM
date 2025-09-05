@@ -6,18 +6,27 @@ import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.adbkit.entities.Event;
+import com.example.adbkit.entities.EventType;
+import com.example.adbkit.entities.Todo;
+import com.example.adbkit.events.SimpleEventBus;
+import com.example.adbkit.events.TodoCreatedEvent;
+import com.example.adbkit.events.TodoDeletedEvent;
+import com.example.adbkit.events.TodoUpdatedEvent;
+import com.example.adbkit.repositories.EventRepository;
+import com.example.adbkit.repositories.TodoRepository;
+
 import java.util.ArrayList;
 
 import lib.persistence.DbCallback;
 import lib.persistence.DbResult;
 import lib.persistence.RepositoryFactory;
-import com.example.adbkit.entities.Todo;
-import com.example.adbkit.repositories.TodoRepository;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private TodoRepository todoRepository;
+    private EventRepository eventRepository;
 
 //    @Override
 //    protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +49,59 @@ public class MainActivity extends AppCompatActivity {
         // DbContext dbContext = new DbContext(getApplicationContext());
         // todoRepository = new TodoRepository(dbContext);
         todoRepository = RepositoryFactory.getTodoRepository(getApplicationContext());
+        eventRepository = RepositoryFactory.getEventRepository(getApplicationContext());
+
+        SimpleEventBus.subscribe(TodoCreatedEvent.class, event -> {
+            Event newEvent = new Event(EventType.CREATED, "Todo: " + event.todo.id + " title: " + event.todo.title);
+
+            eventRepository.insert(newEvent, result -> {
+                if (!result.isSuccess()) {
+                    Exception e = ((DbResult.Error) result).getException();
+                    Log.e(TAG, "CREATE - Hata: " + e.getMessage());
+                }
+            });
+
+//            eventRepository.insert(newEvent, new DbCallback<Event>() {
+//                @Override
+//                public void onResult(DbResult<Event> result) {
+//                    if (!result.isSuccess()) {
+//                        Exception e = ((DbResult.Error) result).getException();
+//                        Log.e(TAG, "CREATE - Hata: " + e.getMessage());
+//                    }
+//                }
+//            });
+        });
+
+        SimpleEventBus.subscribe(TodoUpdatedEvent.class, event -> {
+            Event newEvent = new Event(EventType.UPDATED, "Todo: " + event.todo.id + " title: " + event.todo.title);
+
+            eventRepository.insert(newEvent, result -> {
+                if (!result.isSuccess()) {
+                    Exception e = ((DbResult.Error) result).getException();
+                    Log.e(TAG, "UPDATE - Hata: " + e.getMessage());
+                }
+            });
+
+//            eventRepository.insert(newEvent, new DbCallback<Event>() {
+//                @Override
+//                public void onResult(DbResult<Event> result) {
+//                    if (!result.isSuccess()) {
+//                        Exception e = ((DbResult.Error) result).getException();
+//                        Log.e(TAG, "UPDATE - Hata: " + e.getMessage());
+//                    }
+//                }
+//            });
+        });
+
+        SimpleEventBus.subscribe(TodoDeletedEvent.class, event -> {
+            Event newEvent = new Event(EventType.DELETED, "Todo: " + event.todo.id + " title: " + event.todo.title);
+            eventRepository.insert(newEvent, result -> {
+                if (!result.isSuccess()) {
+                    Exception e = ((DbResult.Error) result).getException();
+                    Log.e(TAG, "DELETE - Hata: " + e.getMessage());
+                }
+            });
+        });
 
         // Örnek bir işlem başlatmak için bir buton tanımlayalım
         Button startDbOpsButton = findViewById(R.id.start_db_ops_button);
@@ -119,6 +181,7 @@ public class MainActivity extends AppCompatActivity {
                     Todo updatedTodo = ((DbResult.Success<Todo>) result).getData();
                     Log.d(TAG, "UPDATE - Başarılı: " + updatedTodo);
 
+                    SimpleEventBus.post(new TodoUpdatedEvent(updatedTodo));
                     // Bir sonraki adıma geçelim: okuma
                     readUpdatedTodo(updatedTodo.id);
                 } else {
@@ -160,8 +223,23 @@ public class MainActivity extends AppCompatActivity {
             public void onResult(DbResult<Todo> result) {
                 if (result.isSuccess()) {
                     Log.d(TAG, "DELETE - Başarılı: Todo silindi.");
+
+                    SimpleEventBus.post(new TodoDeletedEvent(todoToDelete));
+
                     // Son kontrol için tüm todoları tekrar okuyalım
                     readAllTodos();
+
+                    eventRepository.selectAll(new DbCallback<ArrayList<Event>>() {
+                        @Override
+                        public void onResult(DbResult<ArrayList<Event>> result) {
+                            ArrayList<Event> events = ((DbResult.Success<ArrayList<Event>>) result).getData();
+                            Log.d(TAG, "READ ALL - Başarılı, bulunan Todo sayısı: " + events.size());
+                            for (Event event : events) {
+                                Log.d(TAG, "READ ALL - Todo: " + event.toString());
+                            }
+                        }
+                    });
+
                 } else {
                     Exception e = ((DbResult.Error) result).getException();
                     Log.e(TAG, "DELETE - Hata: " + e.getMessage());

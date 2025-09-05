@@ -1,4 +1,6 @@
-package com.example.adbkit.entities;
+package com.example.adbkit.events;
+
+import com.example.adbkit.entities.Todo;
 
 public class TodoCreatedEvent {
     public final Todo todo;

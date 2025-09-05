@@ -3,7 +3,7 @@ package lib.persistence;
 import android.content.Context;
 
 import com.example.adbkit.MyApplication;
-
+import com.example.adbkit.repositories.EventRepository;
 import com.example.adbkit.repositories.TodoRepository;
 
 public final class RepositoryFactory {
@@ -13,6 +13,12 @@ public final class RepositoryFactory {
         MyApplication application = (MyApplication) appContext.getApplicationContext();
         // TodoRepository constructor'ı artık IDbContext almalı
         return new TodoRepository(application.getDbContext());
+    }
+
+    public static EventRepository getEventRepository(Context appContext) {
+        MyApplication application = (MyApplication) appContext.getApplicationContext();
+        // TodoRepository constructor'ı artık IDbContext almalı
+        return new EventRepository(application.getDbContext());
     }
 }
 /*

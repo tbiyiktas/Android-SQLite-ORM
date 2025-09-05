@@ -1,16 +1,14 @@
 package lib.persistence.command.query;
 
+import static lib.persistence.SqlNames.qCol;
+
 import android.database.Cursor;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
 import lib.persistence.profile.Mapper;
-
-import static lib.persistence.SqlNames.qCol;
-import static lib.persistence.SqlNames.qId;
 
 /**
  * Güvenli, parametreli ve tipli SELECT builder.

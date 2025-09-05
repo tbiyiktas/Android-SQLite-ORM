@@ -4,17 +4,17 @@ package com.example.adbkit;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 
-import lib.persistence.ADbContext;
-import lib.persistence.command.definition.CreateTableCommand;
-import lib.persistence.command.definition.CreateIndexCommand;
-import lib.persistence.command.definition.DropTableCommand;
-import lib.persistence.migration.Migrations;
-
 import com.example.adbkit.entities.Todo;
+
+import lib.persistence.ADbContext;
+import lib.persistence.command.definition.CreateIndexCommand;
+import lib.persistence.command.definition.CreateTableCommand;
+import lib.persistence.migration.Migrations;
 
 public class DbContext extends ADbContext {
     private static final String dbName = "local.db";
-    private static final int version = 3;
+    private static final int version = 5;
+
     public DbContext(Context context) {
         super(context, dbName, version);
     }
@@ -44,10 +44,12 @@ public class DbContext extends ADbContext {
 
     @Override
     protected void onUpgradeSchema(SQLiteDatabase db, int oldVersion, int newVersion) {
-       // Migrations.apply(db, oldVersion, newVersion);
+        // Migrations.apply(db, oldVersion, newVersion);
 
         // Basit senaryoda drop + recreate
-        db.execSQL(DropTableCommand.build(Todo.class).getQuery());
+        // db.execSQL(DropTableCommand.build(Todo.class).getQuery());
+
+        Migrations.apply(db, 4, 5);
         onCreateSchema(db);
     }
 }

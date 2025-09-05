@@ -9,7 +9,7 @@ public class DbColumn {
     private final boolean primaryKey;
     private final boolean identity;
     private final boolean nullable;
-
+    private String sqliteType; // "TEXT","INTEGER","REAL","BLOB" veya null
 
     public DbColumn(int ordinal,
                     String fieldName,
@@ -35,4 +35,7 @@ public class DbColumn {
     public boolean isPrimaryKey() { return primaryKey; }
     public boolean isIdentity() { return identity; }
     public boolean isNullable() { return nullable; }
+
+    public String getSqliteType() { return sqliteType; }
+    public void setSqliteType(String sqliteType) { this.sqliteType = sqliteType; }
 }

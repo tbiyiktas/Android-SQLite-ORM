@@ -2,12 +2,13 @@
 package lib.persistence.command.manipulation;
 
 import android.content.ContentValues;
-import lib.persistence.annotations.DbTableAnnotation;
-import lib.persistence.profile.Mapper;
-import lib.persistence.profile.DbColumn;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import lib.persistence.annotations.DbTableAnnotation;
+import lib.persistence.profile.DbColumn;
+import lib.persistence.profile.Mapper;
 
 public class UpdateSql {
     private final Class<?> type;

@@ -2,12 +2,6 @@ package lib.persistence.command.query;
 
 
 import android.database.Cursor;
-import lib.persistence.profile.Mapper;
-import lib.persistence.profile.RowMapper;
-
-
-import java.util.*;
-import android.database.Cursor;
 
 import java.util.function.Function;
 

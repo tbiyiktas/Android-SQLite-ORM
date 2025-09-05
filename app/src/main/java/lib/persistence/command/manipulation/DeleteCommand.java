@@ -4,13 +4,15 @@ package lib.persistence.command.manipulation;
 import static lib.persistence.SqlNames.qCol;
 import static lib.persistence.SqlNames.qId;
 
-import lib.persistence.profile.DbColumn;
-import lib.persistence.profile.Mapper;
-
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import lib.persistence.annotations.DbConverterAnnotation;
+import lib.persistence.converters.ConverterRegistry;
+import lib.persistence.converters.TypeConverter;
+import lib.persistence.profile.DbColumn;
+import lib.persistence.profile.Mapper;
 
 /**
  * DELETE komutu derleyicisi:
@@ -45,18 +47,37 @@ public class DeleteCommand {
                 .collect(Collectors.joining(" AND "));
 
         String[] args = new String[pks.size()];
+//        try {
+//            for (int i = 0; i < pks.size(); i++) {
+//                Field f = Mapper.findField(type, pks.get(i).getFieldName());
+//                f.setAccessible(true);
+//                Object v = f.get(entity);
+//                if (v == null) throw new IllegalStateException("PK değeri null olamaz: " + pks.get(i).getFieldName());
+//                args[i] = String.valueOf(v);
+//            }
+//        } catch (ReflectiveOperationException e) {
+//            throw new RuntimeException("PK değer(ler)i okunamadı", e);
+//        }
+
         try {
             for (int i = 0; i < pks.size(); i++) {
-                Field f = Mapper.findField(type, pks.get(i).getFieldName());
+                DbColumn pk = pks.get(i);
+                Field f = Mapper.findField(type, pk.getFieldName());
                 f.setAccessible(true);
                 Object v = f.get(entity);
-                if (v == null) throw new IllegalStateException("PK değeri null olamaz: " + pks.get(i).getFieldName());
-                args[i] = String.valueOf(v);
+                if (v == null) throw new IllegalStateException("PK değeri null olamaz: " + pk.getFieldName());
+                // PK alanında converter varsa DB değerine çevir
+                DbConverterAnnotation ann = f.getAnnotation(DbConverterAnnotation.class);
+                if (ann != null) {
+                    TypeConverter<?, ?> conv = ConverterRegistry.getOrCreate(ann.converter());
+                    @SuppressWarnings({"rawtypes","unchecked"})
+                    Object dbVal = ((TypeConverter) conv).toDatabaseValue(v);
+                    args[i] = (dbVal == null) ? null : String.valueOf(dbVal);
+                } else {
+                    args[i] = String.valueOf(v);
+                }
             }
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("PK değer(ler)i okunamadı", e);
-        }
-
+        } catch (Exception e) { throw new RuntimeException(e); }
         return new DeleteCommand(qId(rawTable), where, args);
     }
 
@@ -81,9 +102,16 @@ public class DeleteCommand {
                 .collect(Collectors.joining(" AND "));
 
         String[] args = new String[pks.size()];
+//        for (int i = 0; i < pks.size(); i++) {
+//            Object v = primaryKeyValues[i];
+//            if (v == null) throw new IllegalArgumentException("PK değeri null olamaz: " + pks.get(i).getColumnName());
+//            args[i] = String.valueOf(v);
+//        }
+
         for (int i = 0; i < pks.size(); i++) {
             Object v = primaryKeyValues[i];
             if (v == null) throw new IllegalArgumentException("PK değeri null olamaz: " + pks.get(i).getColumnName());
+            // Burada çağıran taraf DB tipini verebilir; tip dönüştürmeye zorlamıyoruz
             args[i] = String.valueOf(v);
         }
 
