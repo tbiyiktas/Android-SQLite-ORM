@@ -24,7 +24,7 @@ You get the ergonomics of an ORM without losing the transparency of SQL. Everyth
 * [Quick Start](#quick-start)
 
   * [1) Define your model](#1-define-your-model)
-  * [2) Create your DbContext](#2-create-your-dbcontext)(#2-create-your-dbcontext)
+  * [2) Create your DbContext](#2-create-your-dbcontext)
   * [3) Use a repository](#3-use-a-repository)
 * [Fluent SQL Builders](#fluent-sql-builders)
 
