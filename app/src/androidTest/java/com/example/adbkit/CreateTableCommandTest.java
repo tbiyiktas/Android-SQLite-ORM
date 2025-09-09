@@ -3,8 +3,8 @@ package com.example.adbkit;
 
 import static org.junit.Assert.*;
 import org.junit.Test;
-import lib.persistence.annotations.DbColumnAnnotation;
-import lib.persistence.annotations.DbTableAnnotation;
+import lib.persistence.mapping.annotations.DbColumnAnnotation;
+import lib.persistence.mapping.annotations.DbTableAnnotation;
 import lib.persistence.command.definition.CreateTableCommand;
 
 @DbTableAnnotation(name = "simple_table")

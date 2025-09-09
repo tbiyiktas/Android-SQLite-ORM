@@ -1,8 +1,8 @@
 package com.example.adbkit.entities;
 
-import lib.persistence.annotations.DbColumnAnnotation;
-import lib.persistence.annotations.DbConverterAnnotation;
-import lib.persistence.annotations.DbTableAnnotation;
+import lib.persistence.mapping.annotations.DbColumnAnnotation;
+import lib.persistence.mapping.annotations.DbConverterAnnotation;
+import lib.persistence.mapping.annotations.DbTableAnnotation;
 
 @DbTableAnnotation(name = "events")
 public class Event {
@@ -20,10 +20,11 @@ public class Event {
     @DbConverterAnnotation(converter = DateMillisConverter.class)
     private java.util.Date createdAt;
 
-    public Event(){
+    public Event() {
 
     }
-    public Event(EventType type, String message){
+
+    public Event(EventType type, String message) {
         this.type = type;
         this.message = message;
         this.createdAt = java.util.Date.from(new java.util.Date().toInstant());

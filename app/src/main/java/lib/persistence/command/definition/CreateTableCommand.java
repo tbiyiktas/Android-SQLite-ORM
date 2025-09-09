@@ -6,9 +6,9 @@ import static lib.persistence.SqlNames.qId;
 import java.util.ArrayList;
 import java.util.StringJoiner;
 
-import lib.persistence.profile.DbColumn;
-import lib.persistence.profile.DbDataType;
-import lib.persistence.profile.Mapper;
+import lib.persistence.mapping.DbColumn;
+import lib.persistence.mapping.DbDataType;
+import lib.persistence.mapping.Mapper;
 
 public class CreateTableCommand {
     private final String query;

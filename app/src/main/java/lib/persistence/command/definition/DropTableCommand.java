@@ -2,7 +2,7 @@ package lib.persistence.command.definition;
 
 import static lib.persistence.SqlNames.qId;
 
-import lib.persistence.annotations.DbTableAnnotation;
+import lib.persistence.mapping.annotations.DbTableAnnotation;
 
 public class DropTableCommand {
 
@@ -27,5 +27,7 @@ public class DropTableCommand {
         return new DropTableCommand(q);
     }
 
-    public String getQuery() { return query; }
+    public String getQuery() {
+        return query;
+    }
 }

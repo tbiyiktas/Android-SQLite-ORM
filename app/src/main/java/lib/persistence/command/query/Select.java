@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import lib.persistence.profile.Mapper;
+import lib.persistence.mapping.Mapper;
 
 /**
  * Güvenli, parametreli ve tipli SELECT builder.
@@ -36,7 +36,8 @@ public final class Select<T> {
     // ---------- CTOR ----------
     private Select(Class<T> type, String table) {
         if (type == null) throw new IllegalArgumentException("type is required");
-        if (table == null || table.trim().isEmpty()) throw new IllegalArgumentException("table is required");
+        if (table == null || table.trim().isEmpty())
+            throw new IllegalArgumentException("table is required");
         this.type = type;
         this.table = table.trim();
     }
@@ -46,21 +47,31 @@ public final class Select<T> {
         return new Select<>(type, Mapper.getTableName(type));
     }
 
-    /** İstersen custom tablo adı/alias ile başlat (örn. view ya da alias) */
+    /**
+     * İstersen custom tablo adı/alias ile başlat (örn. view ya da alias)
+     */
     public static <T> Select<T> from(Class<T> type, String tableNameOrAlias) {
         return new Select<>(type, tableNameOrAlias);
     }
 
-    public Select<T> distinct() { this.distinct = true; return this; }
+    public Select<T> distinct() {
+        this.distinct = true;
+        return this;
+    }
 
-    /** Özel rowMapper ver (opsiyonel). */
+    /**
+     * Özel rowMapper ver (opsiyonel).
+     */
     public Select<T> rowMapper(Function<Cursor, T> mapper) {
         this.rowMapper = mapper;
         return this;
     }
 
     // ---------- COLUMNS ----------
-    /** Basit kolon adları (identifier). Gerekirse tablo.alan formatında ver; otomatik kaçışlanır. */
+
+    /**
+     * Basit kolon adları (identifier). Gerekirse tablo.alan formatında ver; otomatik kaçışlanır.
+     */
     public Select<T> columns(String... cols) {
         if (cols != null) {
             for (String c : cols) {
@@ -73,15 +84,21 @@ public final class Select<T> {
         return this;
     }
 
-    /** Ham ifade/hesap (kaçış yapmaz). Örn: "strftime('%Y', `created_at`)" */
+    /**
+     * Ham ifade/hesap (kaçış yapmaz). Örn: "strftime('%Y', `created_at`)"
+     */
     public Select<T> columnRaw(String rawExpr) {
-        if (rawExpr == null || rawExpr.trim().isEmpty()) throw new IllegalArgumentException("rawExpr required");
+        if (rawExpr == null || rawExpr.trim().isEmpty())
+            throw new IllegalArgumentException("rawExpr required");
         columns.add(rawExpr.trim());
         return this;
     }
 
     // ---------- AGGREGATES ----------
-    public Select<T> count() { columns.add("COUNT(*) AS " + qId("count")); return this; }
+    public Select<T> count() {
+        columns.add("COUNT(*) AS " + qId("count"));
+        return this;
+    }
 
     public Select<T> count(String col, String alias) {
         requireCol(col);
@@ -95,12 +112,25 @@ public final class Select<T> {
         return this;
     }
 
-    public Select<T> sum(String col, String alias) { return aggFunc("SUM", col, alias); }
-    public Select<T> avg(String col, String alias) { return aggFunc("AVG", col, alias); }
-    public Select<T> min(String col, String alias) { return aggFunc("MIN", col, alias); }
-    public Select<T> max(String col, String alias) { return aggFunc("MAX", col, alias); }
+    public Select<T> sum(String col, String alias) {
+        return aggFunc("SUM", col, alias);
+    }
 
-    /** Parametreli ham ifade (örn: "CASE WHEN `x` > ? THEN 1 ELSE 0 END", alias) */
+    public Select<T> avg(String col, String alias) {
+        return aggFunc("AVG", col, alias);
+    }
+
+    public Select<T> min(String col, String alias) {
+        return aggFunc("MIN", col, alias);
+    }
+
+    public Select<T> max(String col, String alias) {
+        return aggFunc("MAX", col, alias);
+    }
+
+    /**
+     * Parametreli ham ifade (örn: "CASE WHEN `x` > ? THEN 1 ELSE 0 END", alias)
+     */
     public Select<T> expr(String sqlExpr, String alias, Object... params) {
         if (sqlExpr == null || sqlExpr.trim().isEmpty())
             throw new IllegalArgumentException("sqlExpr required");
@@ -130,11 +160,30 @@ public final class Select<T> {
         return (val == null) ? whereNotNull(col) : whereRaw(qCol(col) + " <> ?", val);
     }
 
-    public Select<T> whereGt(String col, Object val) { requireVal(val); return whereRaw(qCol(col) + " > ?", val); }
-    public Select<T> whereGe(String col, Object val) { requireVal(val); return whereRaw(qCol(col) + " >= ?", val); }
-    public Select<T> whereLt(String col, Object val) { requireVal(val); return whereRaw(qCol(col) + " < ?", val); }
-    public Select<T> whereLe(String col, Object val) { requireVal(val); return whereRaw(qCol(col) + " <= ?", val); }
-    public Select<T> whereLike(String col, String pattern) { requireCol(col); return whereRaw(qCol(col) + " LIKE ?", pattern); }
+    public Select<T> whereGt(String col, Object val) {
+        requireVal(val);
+        return whereRaw(qCol(col) + " > ?", val);
+    }
+
+    public Select<T> whereGe(String col, Object val) {
+        requireVal(val);
+        return whereRaw(qCol(col) + " >= ?", val);
+    }
+
+    public Select<T> whereLt(String col, Object val) {
+        requireVal(val);
+        return whereRaw(qCol(col) + " < ?", val);
+    }
+
+    public Select<T> whereLe(String col, Object val) {
+        requireVal(val);
+        return whereRaw(qCol(col) + " <= ?", val);
+    }
+
+    public Select<T> whereLike(String col, String pattern) {
+        requireCol(col);
+        return whereRaw(qCol(col) + " LIKE ?", pattern);
+    }
 
     public Select<T> whereNull(String col) {
         requireCol(col);
@@ -198,8 +247,15 @@ public final class Select<T> {
         return this;
     }
 
-    public Select<T> limit(int n) { this.limit = n; return this; }
-    public Select<T> offset(int n) { this.offset = n; return this; }
+    public Select<T> limit(int n) {
+        this.limit = n;
+        return this;
+    }
+
+    public Select<T> offset(int n) {
+        this.offset = n;
+        return this;
+    }
 
     // ---------- BUILD ----------
     public SelectQuery<T> compile() {
@@ -235,20 +291,24 @@ public final class Select<T> {
             }
         }
 
-        if (!groupBys.isEmpty())  sql.append(" GROUP BY ").append(String.join(", ", groupBys));
+        if (!groupBys.isEmpty()) sql.append(" GROUP BY ").append(String.join(", ", groupBys));
 
         if (!havingClauses.isEmpty()) {
             sql.append(" HAVING ");
             boolean first = true;
             for (String h : havingClauses) {
-                if (first) { sql.append(h); first = false; }
-                else { sql.append(" AND ").append(h); }
+                if (first) {
+                    sql.append(h);
+                    first = false;
+                } else {
+                    sql.append(" AND ").append(h);
+                }
             }
         }
 
-        if (!orderBys.isEmpty())  sql.append(" ORDER BY ").append(String.join(", ", orderBys));
-        if (limit  != null)       sql.append(" LIMIT ").append(limit);
-        if (offset != null)       sql.append(" OFFSET ").append(offset);
+        if (!orderBys.isEmpty()) sql.append(" ORDER BY ").append(String.join(", ", orderBys));
+        if (limit != null) sql.append(" LIMIT ").append(limit);
+        if (offset != null) sql.append(" OFFSET ").append(offset);
 
         String[] a = args.toArray(new String[0]);
         // ← Kritik: type'ı geçir
@@ -265,8 +325,7 @@ public final class Select<T> {
             //args.add(String.valueOf(p));
             if (p instanceof Boolean) {
                 args.add(((Boolean) p) ? "1" : "0");  // boolean → "1"/"0"
-            }
-            else{
+            } else {
                 args.add(String.valueOf(p));
             }
         }
@@ -300,14 +359,18 @@ public final class Select<T> {
 //        return qId(c);
 //    }
 
-    /** Kolon listelerinde '*' destekler. */
+    /**
+     * Kolon listelerinde '*' destekler.
+     */
     private static String qColOrStar(String col) {
         String c = col.trim();
         if ("*".equals(c)) return "*";
         return qCol(c);
     }
 
-    /** Basit identifier (tablo/alias/kolon) için backtick. */
+    /**
+     * Basit identifier (tablo/alias/kolon) için backtick.
+     */
     private static String qId(String id) {
         String s = id.trim();
         // Eğer kullanıcının verdiği ifade zaten bir fonksiyon/ham ifade ise burada kullanma. (columnRaw/expr kullanmalı)

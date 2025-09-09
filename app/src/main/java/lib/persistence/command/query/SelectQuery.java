@@ -5,7 +5,7 @@ import android.database.Cursor;
 
 import java.util.function.Function;
 
-import lib.persistence.profile.Mapper;
+import lib.persistence.mapping.Mapper;
 /*
 
 public class SelectQuery<T> {
@@ -69,8 +69,8 @@ public class SelectQuery<T> {
  * SELECT derleme çıktısı: SQL, argümanlar ve opsiyonel satır eşleyici.
  * - rowMapper verilmezse ve type sağlanmışsa, Mapper.cursorToObject(...) varsayılan kullanılır.
  * - Her iki ctor da desteklenir:
- *     new SelectQuery<>(sql, args, rowMapper)
- *     new SelectQuery<>(sql, args, type, rowMapper)
+ * new SelectQuery<>(sql, args, rowMapper)
+ * new SelectQuery<>(sql, args, type, rowMapper)
  */
 public final class SelectQuery<T> {
 
@@ -79,14 +79,19 @@ public final class SelectQuery<T> {
     private final Function<Cursor, T> rowMapper; // null olabilir
     private final Class<T> type;                  // null olabilir (tip verilmeden ctor kullanılırsa)
 
-    /** Tip vermeden: sadece özel rowMapper ile. */
+    /**
+     * Tip vermeden: sadece özel rowMapper ile.
+     */
     public SelectQuery(String sql, String[] args, Function<Cursor, T> rowMapper) {
         this(sql, args, null, rowMapper);
     }
 
-    /** Tip vererek: rowMapper null ise Mapper.cursorToObject(...) varsayılanı kullanılır. */
+    /**
+     * Tip vererek: rowMapper null ise Mapper.cursorToObject(...) varsayılanı kullanılır.
+     */
     public SelectQuery(String sql, String[] args, Class<T> type, Function<Cursor, T> rowMapper) {
-        if (sql == null || sql.trim().isEmpty()) throw new IllegalArgumentException("sql is required");
+        if (sql == null || sql.trim().isEmpty())
+            throw new IllegalArgumentException("sql is required");
         this.sql = sql;
         this.args = (args == null) ? new String[0] : args;
         this.type = type;

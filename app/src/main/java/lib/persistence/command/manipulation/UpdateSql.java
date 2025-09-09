@@ -6,9 +6,9 @@ import android.content.ContentValues;
 import java.util.ArrayList;
 import java.util.List;
 
-import lib.persistence.annotations.DbTableAnnotation;
-import lib.persistence.profile.DbColumn;
-import lib.persistence.profile.Mapper;
+import lib.persistence.mapping.annotations.DbTableAnnotation;
+import lib.persistence.mapping.DbColumn;
+import lib.persistence.mapping.Mapper;
 
 public class UpdateSql {
     private final Class<?> type;
@@ -29,7 +29,9 @@ public class UpdateSql {
         return new UpdateSql(type);
     }
 
-    /** SET column = value (tip eşleme merkezi: Mapper) */
+    /**
+     * SET column = value (tip eşleme merkezi: Mapper)
+     */
     public UpdateSql set(String column, Object value) {
         if (column == null || column.trim().isEmpty())
             throw new IllegalArgumentException("column zorunludur");
@@ -39,36 +41,63 @@ public class UpdateSql {
         return this;
     }
 
-    public UpdateSql where() { return this; }
-    public UpdateSql and() { this.pendingOp = "AND"; return this; }
-    public UpdateSql or()  { this.pendingOp = "OR";  return this; }
+    public UpdateSql where() {
+        return this;
+    }
 
-    /** WHERE `column` = ? (backtick’li kolon) */
+    public UpdateSql and() {
+        this.pendingOp = "AND";
+        return this;
+    }
+
+    public UpdateSql or() {
+        this.pendingOp = "OR";
+        return this;
+    }
+
+    /**
+     * WHERE `column` = ? (backtick’li kolon)
+     */
     public UpdateSql Equals(String column, Object value) {
         if (column == null || column.trim().isEmpty())
             throw new IllegalArgumentException("column zorunludur");
         String clause = q(column.trim()) + " = ?";
         if (!whereClauses.isEmpty()) clause = pendingOp + " " + clause;
         whereClauses.add(clause);
-        whereArgs.add(String.valueOf(value));
+
+        String v = (value instanceof Boolean) ? (((Boolean) value) ? "1" : "0")
+                : String.valueOf(value);
+        whereArgs.add(String.valueOf(v));
         this.pendingOp = "AND";
         return this;
     }
 
-    private static String q(String id) { return "`" + id + "`"; }
+    private static String q(String id) {
+        return "`" + id + "`";
+    }
 
-    public String getTableName() { return tableName; } // db.update(...) için backtick YOK
-    public ContentValues getContentValues() { return contentValues; }
+    public String getTableName() {
+        return tableName;
+    } // db.update(...) için backtick YOK
+
+    public ContentValues getContentValues() {
+        return contentValues;
+    }
+
     public String getWhereClause() {
         if (whereClauses.isEmpty()) return null;
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < whereClauses.size(); i++) {
             String part = whereClauses.get(i);
-            if (i == 0 && (part.startsWith("AND ") || part.startsWith("OR "))) sb.append(part.substring(4));
+            if (i == 0 && (part.startsWith("AND ") || part.startsWith("OR ")))
+                sb.append(part.substring(4));
             else if (i == 0) sb.append(part);
             else sb.append(" ").append(part);
         }
         return sb.toString();
     }
-    public String[] getWhereArgs() { return whereArgs.toArray(new String[0]); }
+
+    public String[] getWhereArgs() {
+        return whereArgs.toArray(new String[0]);
+    }
 }

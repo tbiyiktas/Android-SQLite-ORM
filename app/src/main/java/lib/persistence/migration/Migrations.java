@@ -10,7 +10,8 @@ import java.util.List;
 import lib.persistence.command.definition.CreateTableCommand;
 
 public final class Migrations {
-    private Migrations() {}
+    private Migrations() {
+    }
 
     // Buraya gerçek adımlarını ekle:
     private static final List<MigrationStep> STEPS = Arrays.asList(

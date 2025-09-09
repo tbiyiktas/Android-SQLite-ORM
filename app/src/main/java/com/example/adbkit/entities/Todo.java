@@ -1,15 +1,15 @@
 package com.example.adbkit.entities;
 
-import lib.persistence.annotations.DbColumnAnnotation;
-import lib.persistence.annotations.DbTableAnnotation;
+import lib.persistence.mapping.annotations.DbColumnAnnotation;
+import lib.persistence.mapping.annotations.DbTableAnnotation;
 
 @DbTableAnnotation(name = "todos")
 public class Todo {
-    @DbColumnAnnotation(ordinal = 1,isPrimaryKey = true, isIdentity = true)
+    @DbColumnAnnotation(ordinal = 1, isPrimaryKey = true, isIdentity = true)
     public int id;
     @DbColumnAnnotation(ordinal = 2)
     public int userId;
-    @DbColumnAnnotation(ordinal = 3,isNullable = false)
+    @DbColumnAnnotation(ordinal = 3, isNullable = false)
     public String title;
     @DbColumnAnnotation(ordinal = 4)
     public boolean completed;

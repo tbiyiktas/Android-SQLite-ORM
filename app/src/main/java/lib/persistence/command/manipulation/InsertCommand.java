@@ -3,7 +3,7 @@ package lib.persistence.command.manipulation;
 
 import android.content.ContentValues;
 
-import lib.persistence.profile.Mapper;
+import lib.persistence.mapping.Mapper;
 
 
 public class InsertCommand {
@@ -25,6 +25,11 @@ public class InsertCommand {
     }
 
 
-    public String getTableName() { return tableName; }
-    public ContentValues getContentValues() { return contentValues; }
+    public String getTableName() {
+        return tableName;
+    }
+
+    public ContentValues getContentValues() {
+        return contentValues;
+    }
 }

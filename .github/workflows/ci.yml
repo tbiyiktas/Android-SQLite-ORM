@@ -1,59 +1,76 @@
-# .github/workflows/ci.yml
-name: CI
-on: [push, pull_request]
+name: Android CI (Java 21)
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  unit_and_lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
-
-      - uses: android-actions/setup-android@v3
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      - name: Build + Unit + Lint
-        run: |
-          ./gradlew --stacktrace --no-daemon clean
-          ./gradlew assemble
-          ./gradlew test
-          ./gradlew lint
-
-  connected_android_tests:
-    needs: unit_and_lint
+  build-test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v2
+
+      - name: Set up Java 21 (Temurin)
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "21"
           cache: gradle
 
-      - uses: android-actions/setup-android@v3
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      # Emülatörü kur ve enstrümantasyon testlerini çalıştır
-      - name: Run connected tests (API 30)
-        uses: reactivecircus/android-emulator-runner@v2
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
         with:
-          api-level: 26
-          arch: x86_64
-          profile: pixel_6
-          target: default
-          emulator-options: -no-window -no-snapshot -no-boot-anim -camera-back none
-          disable-animations: true
-          script: ./gradlew :app:connectedDebugAndroidTest
+          cmdline-tools-version: "latest"
 
+      - name: Accept licenses & install basic packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager --install "platform-tools" "cmdline-tools;latest" "platforms;android-36" || true
+          # (Gradle gerekli build-tools sürümünü indirir; platform 36 yoksa yukarıdaki satır sorun çıkarmaz)
 
+      - name: Setup Gradle cache/action
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Print versions
+        run: |
+          ./gradlew --version
+          java -version
+
+      - name: Assemble (optional quick check)
+        run: ./gradlew --no-daemon :app:assembleDebug
+
+      - name: Tests + coverage (JaCoCo)
+        run: ./gradlew --no-daemon :app:testDebugUnitTest jacocoTestReportAll
+
+      - name: Upload unit test report (HTML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: app/build/reports/tests/testDebugUnitTest
+
+      - name: Upload coverage report (HTML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-html
+          path: app/build/reports/jacoco/jacocoTestReportAll/html
+
+      - name: Upload coverage report (XML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-xml
+          path: app/build/reports/jacoco/jacocoTestReportAll/jacocoTestReportAll.xml

@@ -8,11 +8,11 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import lib.persistence.annotations.DbConverterAnnotation;
-import lib.persistence.converters.ConverterRegistry;
-import lib.persistence.converters.TypeConverter;
-import lib.persistence.profile.DbColumn;
-import lib.persistence.profile.Mapper;
+import lib.persistence.mapping.annotations.DbConverterAnnotation;
+import lib.persistence.mapping.converters.ConverterRegistry;
+import lib.persistence.mapping.converters.TypeConverter;
+import lib.persistence.mapping.DbColumn;
+import lib.persistence.mapping.Mapper;
 
 /**
  * DELETE komutu derleyicisi:
@@ -33,14 +33,17 @@ public class DeleteCommand {
         this.whereArgs = whereArgs;
     }
 
-    /** Entity örneğinden bileşik PK ile DELETE. */
+    /**
+     * Entity örneğinden bileşik PK ile DELETE.
+     */
     public static DeleteCommand build(Object entity) {
         if (entity == null) throw new IllegalArgumentException("entity null olamaz");
         Class<?> type = entity.getClass();
 
         String rawTable = Mapper.getTableName(type);
         List<DbColumn> pks = Mapper.getPrimaryKeyColumns(type);
-        if (pks.isEmpty()) throw new IllegalStateException("Primary key tanımı yok: " + type.getName());
+        if (pks.isEmpty())
+            throw new IllegalStateException("Primary key tanımı yok: " + type.getName());
 
         String where = pks.stream()
                 .map(c -> qCol(c.getColumnName()) + " = ?")
@@ -65,20 +68,24 @@ public class DeleteCommand {
                 Field f = Mapper.findField(type, pk.getFieldName());
                 f.setAccessible(true);
                 Object v = f.get(entity);
-                if (v == null) throw new IllegalStateException("PK değeri null olamaz: " + pk.getFieldName());
+                if (v == null)
+                    throw new IllegalStateException("PK değeri null olamaz: " + pk.getFieldName());
                 // PK alanında converter varsa DB değerine çevir
                 DbConverterAnnotation ann = f.getAnnotation(DbConverterAnnotation.class);
                 if (ann != null) {
                     TypeConverter<?, ?> conv = ConverterRegistry.getOrCreate(ann.converter());
-                    @SuppressWarnings({"rawtypes","unchecked"})
+                    @SuppressWarnings({"rawtypes", "unchecked"})
                     Object dbVal = ((TypeConverter) conv).toDatabaseValue(v);
                     args[i] = (dbVal == null) ? null : String.valueOf(dbVal);
                 } else {
                     args[i] = String.valueOf(v);
                 }
             }
-        } catch (Exception e) { throw new RuntimeException(e); }
-        return new DeleteCommand(qId(rawTable), where, args);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        //return new DeleteCommand(qId(rawTable), where, args);
+        return new DeleteCommand(rawTable, where, args);
     }
 
     /**
@@ -90,7 +97,8 @@ public class DeleteCommand {
 
         String rawTable = Mapper.getTableName(type);
         List<DbColumn> pks = Mapper.getPrimaryKeyColumns(type);
-        if (pks.isEmpty()) throw new IllegalStateException("Primary key tanımı yok: " + type.getName());
+        if (pks.isEmpty())
+            throw new IllegalStateException("Primary key tanımı yok: " + type.getName());
 
         if (primaryKeyValues == null || primaryKeyValues.length != pks.size()) {
             String expected = pks.stream().map(DbColumn::getColumnName).collect(Collectors.joining(", "));
@@ -110,23 +118,36 @@ public class DeleteCommand {
 
         for (int i = 0; i < pks.size(); i++) {
             Object v = primaryKeyValues[i];
-            if (v == null) throw new IllegalArgumentException("PK değeri null olamaz: " + pks.get(i).getColumnName());
+            if (v == null)
+                throw new IllegalArgumentException("PK değeri null olamaz: " + pks.get(i).getColumnName());
             // Burada çağıran taraf DB tipini verebilir; tip dönüştürmeye zorlamıyoruz
             args[i] = String.valueOf(v);
         }
 
-        return new DeleteCommand(qId(rawTable), where, args);
+        //return new DeleteCommand(qId(rawTable), where, args);
+        return new DeleteCommand(rawTable, where, args);
     }
 
-    /** Tüm satırları sil (WHERE yok) – dikkatli kullanın. */
+    /**
+     * Tüm satırları sil (WHERE yok) – dikkatli kullanın.
+     */
     public static DeleteCommand buildAll(Class<?> type) {
         if (type == null) throw new IllegalArgumentException("type null olamaz");
         String rawTable = Mapper.getTableName(type);
-        return new DeleteCommand(qId(rawTable), null, null);
+        //return new DeleteCommand(qId(rawTable), null, null);
+        return new DeleteCommand(rawTable, null, null);
     }
 
 
-    public String getTableName() { return tableName; }
-    public String getWhereClause() { return whereClause; }
-    public String[] getWhereArgs() { return whereArgs; }
+    public String getTableName() {
+        return tableName;
+    }
+
+    public String getWhereClause() {
+        return whereClause;
+    }
+
+    public String[] getWhereArgs() {
+        return whereArgs;
+    }
 }

@@ -8,17 +8,12 @@ import android.database.sqlite.SQLiteDatabase;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
-import com.example.adbkit.entities.Todo; // Todo entity'niz
-import lib.persistence.migration.Migrations;
-import lib.persistence.migration.MigrationStep;
+import com.example.adbkit.infrastructure.persistence.DbContext;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
 public class DbContextTest {

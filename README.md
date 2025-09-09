@@ -301,7 +301,7 @@ public final class DateMillisConverter implements TypeConverter<java.util.Date, 
 Attach a converter to a field with `@DbConverterAnnotation`:
 
 ```java
-import lib.persistence.annotations.*;
+
 
 @DbTableAnnotation(name = "events")
 public class Event {
@@ -319,7 +319,8 @@ public class Event {
     @DbConverterAnnotation(converter = DateMillisConverter.class)
     java.util.Date createdAt;
 
-    public Event() {}
+    public Event() {
+    }
 }
 ```
 

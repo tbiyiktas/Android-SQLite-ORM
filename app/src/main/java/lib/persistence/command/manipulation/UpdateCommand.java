@@ -7,11 +7,11 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
-import lib.persistence.annotations.DbConverterAnnotation;
-import lib.persistence.converters.ConverterRegistry;
-import lib.persistence.converters.TypeConverter;
-import lib.persistence.profile.DbColumn;
-import lib.persistence.profile.Mapper;
+import lib.persistence.mapping.annotations.DbConverterAnnotation;
+import lib.persistence.mapping.converters.ConverterRegistry;
+import lib.persistence.mapping.converters.TypeConverter;
+import lib.persistence.mapping.DbColumn;
+import lib.persistence.mapping.Mapper;
 
 public class UpdateCommand {
     private final String tableName;    // RAW (backticksiz)
@@ -20,7 +20,10 @@ public class UpdateCommand {
     private final String[] whereArgs;
 
     private UpdateCommand(String tableName, ContentValues values, String whereClause, String[] whereArgs) {
-        this.tableName = tableName; this.values = values; this.whereClause = whereClause; this.whereArgs = whereArgs;
+        this.tableName = tableName;
+        this.values = values;
+        this.whereClause = whereClause;
+        this.whereArgs = whereArgs;
     }
 
 //    public static UpdateCommand build(Object entity) {
@@ -57,13 +60,18 @@ public class UpdateCommand {
 
         ArrayList<DbColumn> pks = new ArrayList<>();
         for (DbColumn c : cols) if (c.isPrimaryKey()) pks.add(c);
-        if (pks.isEmpty()) throw new IllegalStateException("Primary key tanımı yok: " + type.getName());
+        if (pks.isEmpty())
+            throw new IllegalStateException("Primary key tanımı yok: " + type.getName());
 
         // SET kısmı: converter’lı doğru ContentValues (PK'lar otomatik dahil olabilir → aşağıda gerekirse kaldırırız)
         ContentValues cv = Mapper.objectToContentValues(entity);
         // Güvenli tarafta kalmak için PK kolonlarını SET’ten çıkar (genelde PK update edilmez)
         for (DbColumn pk : pks) {
             if (cv.containsKey(pk.getColumnName())) cv.remove(pk.getColumnName());
+        }
+
+        if (cv.size() == 0) {
+            throw new IllegalStateException("No updatable fields (all were PK/identity?)");
         }
 
         // WHERE kısmı (PK’lar) — converter desteği ile
@@ -77,27 +85,45 @@ public class UpdateCommand {
                 Field f = Mapper.findField(type, pk.getFieldName());
                 f.setAccessible(true);
                 Object v = f.get(entity);
-                if (v == null) { args[i] = null; continue; }
+                if (v == null) {
+                    args[i] = null;
+                    continue;
+                }
                 // PK alanında converter varsa DB değerine çevir
                 DbConverterAnnotation ann = f.getAnnotation(DbConverterAnnotation.class);
                 if (ann != null) {
                     TypeConverter<?, ?> conv = ConverterRegistry.getOrCreate(ann.converter());
-                    @SuppressWarnings({"rawtypes","unchecked"})
+                    @SuppressWarnings({"rawtypes", "unchecked"})
                     Object dbVal = ((TypeConverter) conv).toDatabaseValue(v);
                     args[i] = (dbVal == null) ? null : String.valueOf(dbVal);
                 } else {
                     args[i] = String.valueOf(v);
                 }
             }
-        } catch (Exception e) { throw new RuntimeException(e); }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         return new UpdateCommand(table, cv, where, args); // table RAW
     }
 
-    private static String q(String id) { return "`" + id + "`"; }
+    private static String q(String id) {
+        return "`" + id + "`";
+    }
 
-    public String getTableName() { return tableName; }    // RAW
-    public ContentValues getValues() { return values; }
-    public String getWhereClause() { return whereClause; }
-    public String[] getWhereArgs() { return whereArgs; }
+    public String getTableName() {
+        return tableName;
+    }    // RAW
+
+    public ContentValues getValues() {
+        return values;
+    }
+
+    public String getWhereClause() {
+        return whereClause;
+    }
+
+    public String[] getWhereArgs() {
+        return whereArgs;
+    }
 }

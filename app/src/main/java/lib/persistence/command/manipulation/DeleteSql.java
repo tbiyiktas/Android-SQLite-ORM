@@ -5,7 +5,7 @@ import static lib.persistence.SqlNames.qCol;
 import java.util.ArrayList;
 import java.util.List;
 
-import lib.persistence.annotations.DbTableAnnotation;
+import lib.persistence.mapping.annotations.DbTableAnnotation;
 
 public class DeleteSql {
     private final Class<?> type;
@@ -25,26 +25,44 @@ public class DeleteSql {
         return new DeleteSql(type);
     }
 
-    /** Okunabilirlik için; işlevsel değişiklik yapmaz. */
-    public DeleteSql where() { return this; }
+    /**
+     * Okunabilirlik için; işlevsel değişiklik yapmaz.
+     */
+    public DeleteSql where() {
+        return this;
+    }
 
-    /** Sonraki koşulun başına AND ekler. */
-    public DeleteSql and() { this.pendingOp = "AND"; return this; }
+    /**
+     * Sonraki koşulun başına AND ekler.
+     */
+    public DeleteSql and() {
+        this.pendingOp = "AND";
+        return this;
+    }
 
-    /** Sonraki koşulun başına OR ekler. */
-    public DeleteSql or() { this.pendingOp = "OR"; return this; }
+    /**
+     * Sonraki koşulun başına OR ekler.
+     */
+    public DeleteSql or() {
+        this.pendingOp = "OR";
+        return this;
+    }
 
-    /** column = ? */
+    /**
+     * column = ?
+     */
     public DeleteSql Equals(String column, Object value) {
         if (column == null || column.trim().isEmpty())
             throw new IllegalArgumentException("column zorunludur");
 
-        String clause =  qCol(column.trim()) + " = ?";
+        String clause = qCol(column.trim()) + " = ?";
         if (!whereClauses.isEmpty()) {
             clause = pendingOp + " " + clause; // önceki koşullara bağla
         }
         whereClauses.add(clause);
-        whereArgs.add(String.valueOf(value));
+        String v = (value instanceof Boolean) ? (((Boolean) value) ? "1" : "0")
+                : String.valueOf(value);
+        whereArgs.add(String.valueOf(v));
         // her eklemeden sonra varsayılanı AND yap
         this.pendingOp = "AND";
         return this;

@@ -4,8 +4,8 @@ import static lib.persistence.SqlNames.qId;
 
 import java.util.ArrayList;
 
-import lib.persistence.profile.DbColumn;
-import lib.persistence.profile.Mapper;
+import lib.persistence.mapping.DbColumn;
+import lib.persistence.mapping.Mapper;
 
 /**
  * Tekil kayıt okumak için basit SELECT … WHERE PK = ? LIMIT 1 sorgusu.
@@ -33,18 +33,30 @@ public class GetQuery {
         ArrayList<DbColumn> cols = Mapper.classToDbColumns(type);
         DbColumn pk = null;
         for (DbColumn c : cols) {
-            if (c.isPrimaryKey()) { pk = c; break; }
+            if (c.isPrimaryKey()) {
+                pk = c;
+                break;
+            }
         }
-        if (pk == null) throw new IllegalStateException("Primary key bulunamadı: " + type.getName());
+        if (pk == null)
+            throw new IllegalStateException("Primary key bulunamadı: " + type.getName());
 
         // Güvenli parametreli sorgu
         String sql = "SELECT * FROM " + qId(tableName) + " WHERE " + qId(pk.getColumnName()) + " = ? LIMIT 1";
-        String[] whereArgs = new String[]{ String.valueOf(id) };
+        String[] whereArgs = new String[]{String.valueOf(id)};
 
         return new GetQuery(sql, whereArgs, type);
     }
 
-    public String getQuery() { return query; }
-    public String[] getArgs() { return args; }
-    public Class<?> getType() { return type; }
+    public String getQuery() {
+        return query;
+    }
+
+    public String[] getArgs() {
+        return args;
+    }
+
+    public Class<?> getType() {
+        return type;
+    }
 }

@@ -17,5 +17,7 @@ public class DropIndexCommand {
         return new DropIndexCommand(q);
     }
 
-    public String getQuery() { return query; }
+    public String getQuery() {
+        return query;
+    }
 }

@@ -7,13 +7,11 @@ import android.content.Context;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
-import com.example.adbkit.DbContext; // Gerçek DbContext implementasyonunuz
 import com.example.adbkit.entities.Todo;
+import com.example.adbkit.infrastructure.persistence.DbContext;
 import com.example.adbkit.repositories.TodoRepository;
 
-import lib.persistence.DbCallback;
-import lib.persistence.DbResult;
-import lib.persistence.IDbContext; // IDbContext kullanın
+import lib.persistence.core.IDbContext; // IDbContext kullanın
 import lib.persistence.command.query.Select;
 
 import org.junit.After;
@@ -22,7 +20,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 

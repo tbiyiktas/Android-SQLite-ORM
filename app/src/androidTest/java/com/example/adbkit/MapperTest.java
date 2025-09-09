@@ -9,11 +9,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import lib.persistence.annotations.DbColumnAnnotation;
-import lib.persistence.annotations.DbTableAnnotation;
-import lib.persistence.profile.DbColumn;
-import lib.persistence.profile.DbDataType;
-import lib.persistence.profile.Mapper;
+import lib.persistence.mapping.annotations.DbColumnAnnotation;
+import lib.persistence.mapping.annotations.DbTableAnnotation;
+import lib.persistence.mapping.DbColumn;
+import lib.persistence.mapping.DbDataType;
+import lib.persistence.mapping.Mapper;
 
 import android.content.ContentValues; // AndroidX Test veya Robolectric gerekebilir ya da mock'layın
 

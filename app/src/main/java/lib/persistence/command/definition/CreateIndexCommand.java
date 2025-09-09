@@ -3,7 +3,7 @@ package lib.persistence.command.definition;
 import static lib.persistence.SqlNames.qId;
 import static lib.persistence.SqlNames.safeId;
 
-import lib.persistence.annotations.DbTableAnnotation;
+import lib.persistence.mapping.annotations.DbTableAnnotation;
 
 public class CreateIndexCommand {
 
@@ -27,9 +27,9 @@ public class CreateIndexCommand {
         StringBuilder queryBuilder = new StringBuilder("CREATE ");
         if (isUnique) queryBuilder.append("UNIQUE ");
         queryBuilder.append("INDEX IF NOT EXISTS ")
-                .append(safeId(indexName))
+                .append(qId(indexName))
                 .append(" ON ")
-                .append(safeId(tableName))
+                .append(qId(tableName))
                 .append(" (");
 
         for (int i = 0; i < columns.length; i++) {
