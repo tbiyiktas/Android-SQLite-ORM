@@ -38,17 +38,25 @@ jobs:
         run: |
           yes | sdkmanager --licenses
           sdkmanager --install "platform-tools" "cmdline-tools;latest" "platforms;android-36" || true
-          # (Gradle gerekli build-tools sürümünü indirir; platform 36 yoksa yukarıdaki satır sorun çıkarmaz)
 
       - name: Setup Gradle cache/action
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Neutralize org.gradle.java.home from repo
+        run: |
+          # Proje içindeki Windows yolunu temizle (varsa)
+          if [ -f gradle.properties ]; then
+            sed -i '/^org\.gradle\.java\.home=/d' gradle.properties || true
+          fi
+          # Gradle'a çalışacağı JDK 21'i açıkça bildir
+          echo "GRADLE_OPTS=-Dorg.gradle.java.home=$JAVA_HOME" >> $GITHUB_ENV
 
       - name: Print versions
         run: |
           ./gradlew --version
           java -version
 
-      - name: Assemble (optional quick check)
+      - name: Assemble (optional)
         run: ./gradlew --no-daemon :app:assembleDebug
 
       - name: Tests + coverage (JaCoCo)
