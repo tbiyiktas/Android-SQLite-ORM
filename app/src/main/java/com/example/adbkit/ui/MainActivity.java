@@ -65,8 +65,9 @@ public class MainActivity extends AppCompatActivity {
 
         // Deps
         ctx = MyApplication.getDbContext();
-        todoRepo = RepositoryFactory.getTodoRepository(getApplicationContext());
-        eventRepo = RepositoryFactory.getEventRepository(getApplicationContext());
+        RepositoryFactory repositoryFactory = new RepositoryFactory(ctx);
+        todoRepo = repositoryFactory.getTodoRepository();
+        eventRepo = repositoryFactory.getEventRepository();
         service = new TodoService(ctx, todoRepo, eventRepo);
 
         // Events on main

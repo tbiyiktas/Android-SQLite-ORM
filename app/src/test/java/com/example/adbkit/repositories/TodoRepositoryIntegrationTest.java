@@ -1,8 +1,7 @@
+// com/example/adbkit/repositories/TodoRepositoryIntegrationTest.java
 package com.example.adbkit.repositories;
 
 import static org.junit.Assert.*;
-
-import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -21,6 +20,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 import lib.persistence.core.DbResult;
+import lib.persistence.core.IDbContext;
 import lib.persistence.repository.RepositoryFactory;
 import testutil.UiTestHelpers;
 
@@ -32,8 +32,13 @@ public class TodoRepositoryIntegrationTest {
     private int createdCount, updatedCount, deletedCount;
 
     @Before public void setup() {
-        Context ctx = ApplicationProvider.getApplicationContext();
-        repo = RepositoryFactory.getTodoRepository(ctx);
+        // Robolectric'te Application'ın init edilmesini garanti et
+        MyApplication app = (MyApplication) ApplicationProvider.getApplicationContext();
+
+        // Instance-scope factory: testte hangi context'i istiyorsan onu ver
+        IDbContext db = MyApplication.getDbContext();
+        RepositoryFactory repositoryFactory = new RepositoryFactory(db);
+        repo = repositoryFactory.getTodoRepository();
 
         createdCount = updatedCount = deletedCount = 0;
         SimpleEventBus.subscribe(TodoCreatedEvent.class, e -> createdCount++);
@@ -47,7 +52,7 @@ public class TodoRepositoryIntegrationTest {
         DbResult<Todo> ins = repo.insert(t).join();
         assertTrue(ins.isSuccess());
         assertTrue(ins.getData().id > 0);
-        UiTestHelpers.flushUi(); // AndroidFutures MAIN post
+        UiTestHelpers.flushUi(); // AfterCommitEvents + UI publish
 
         // UPDATE
         t = ins.getData(); t.completed = true;

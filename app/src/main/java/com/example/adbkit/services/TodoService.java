@@ -12,7 +12,6 @@ import lib.persistence.core.CancellableFuture;
 import lib.persistence.core.DbResult;
 import lib.persistence.core.IDbContext;
 import lib.persistence.tx.AfterCommitEvents;
-import lib.persistence.tx.Transactions;
 
 public final class TodoService {
     private final IDbContext ctx;
@@ -20,16 +19,21 @@ public final class TodoService {
     private final EventRepository events;
 
     public TodoService(IDbContext ctx, TodoRepository todos, EventRepository events) {
-        this.ctx = ctx; this.todos = todos; this.events = events;
+        this.ctx = ctx;
+        this.todos = todos;
+        this.events = events;
     }
 
     public CancellableFuture<DbResult<Todo>> createWithAudit(Todo t) {
-        return Transactions.run(ctx, db -> {
+        return ctx.runTx(db -> {
             Todo saved = todos.insertTx(db, t);
-            events.insertTx(db, new Event(EventType.CREATED,
-                    "Todo " + saved.id + " : " + saved.title));
-            AfterCommitEvents.add(new TodoCreatedEvent(saved)); // commit sonrası publish
-            return new DbResult.Success<Todo>(saved);
+            events.insertTx(db, new Event(
+                    EventType.CREATED,
+                    "Todo " + saved.id + " : " + saved.title
+            ));
+            // Commit sonrası publish edilmek üzere outbox'a ekle
+            AfterCommitEvents.add(new TodoCreatedEvent(saved));
+            return new DbResult.Success<>(saved);
         });
     }
 }
