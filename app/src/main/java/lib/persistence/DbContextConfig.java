@@ -9,6 +9,7 @@ public final class DbContextConfig {
     // Threading
     public final int readThreads;
     public final int readQueueCapacity;
+    public final int writeQueueCapacity;
     public final boolean nonExclusiveTransactions;
     public final String readThreadNamePrefix;
     public final String writeThreadName;
@@ -33,6 +34,7 @@ public final class DbContextConfig {
     private DbContextConfig(Builder b) {
         this.readThreads = b.readThreads;
         this.readQueueCapacity = b.readQueueCapacity;
+        this.writeQueueCapacity = b.writeQueueCapacity;
         this.nonExclusiveTransactions = b.nonExclusiveTransactions;
         this.readThreadNamePrefix = b.readThreadNamePrefix;
         this.writeThreadName = b.writeThreadName;
@@ -48,6 +50,7 @@ public final class DbContextConfig {
         return builder()
                 .readThreads(4)
                 .readQueueCapacity(256)
+                .writeQueueCapacity(1024)
                 .nonExclusiveTransactions(true)
                 .readThreadNamePrefix("db-read-")
                 .writeThreadName("db-write")
@@ -63,6 +66,7 @@ public final class DbContextConfig {
     public static final class Builder {
         private int readThreads = 4;
         private int readQueueCapacity = 256;
+        private int writeQueueCapacity = 1024;
         private boolean nonExclusiveTransactions = true;
         private String readThreadNamePrefix = "DB-Read-";
         private String writeThreadName = "DB-Write";
@@ -77,6 +81,7 @@ public final class DbContextConfig {
             if (from != null) {
                 this.readThreads = from.readThreads;
                 this.readQueueCapacity = from.readQueueCapacity;
+                this.writeQueueCapacity = from.writeQueueCapacity;
                 this.nonExclusiveTransactions = from.nonExclusiveTransactions;
                 this.readThreadNamePrefix = from.readThreadNamePrefix;
                 this.writeThreadName = from.writeThreadName;
@@ -91,6 +96,7 @@ public final class DbContextConfig {
 
         public Builder readThreads(int v) { this.readThreads = v; return this; }
         public Builder readQueueCapacity(int v) { this.readQueueCapacity = v; return this; }
+        public Builder writeQueueCapacity(int v) { this.writeQueueCapacity = v; return this; }
         public Builder nonExclusiveTransactions(boolean v) { this.nonExclusiveTransactions = v; return this; }
         public Builder readThreadNamePrefix(String v) { this.readThreadNamePrefix = v; return this; }
         public Builder writeThreadName(String v) { this.writeThreadName = v; return this; }
