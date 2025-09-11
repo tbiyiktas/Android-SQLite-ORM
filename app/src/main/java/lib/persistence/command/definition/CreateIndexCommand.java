@@ -1,7 +1,6 @@
 package lib.persistence.command.definition;
 
 import static lib.persistence.SqlNames.qId;
-import static lib.persistence.SqlNames.safeId;
 
 import lib.persistence.mapping.annotations.DbTableAnnotation;
 

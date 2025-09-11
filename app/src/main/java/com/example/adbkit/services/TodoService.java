@@ -25,13 +25,13 @@ public final class TodoService {
     }
 
     public CancellableFuture<DbResult<Todo>> createWithAudit(Todo t) {
-        return ctx.runTx(db -> {
+        return ctx.runWrite(db -> {
             Todo saved = todos.insertTx(db, t);
             events.insertTx(db, new Event(
                     EventType.CREATED,
                     "Todo " + saved.id + " : " + saved.title
             ));
-            // Commit sonrası publish edilmek üzere outbox'a ekle
+            // Commit sonrası publish edilecek outbox event
             AfterCommitEvents.add(new TodoCreatedEvent(saved));
             return new DbResult.Success<>(saved);
         });

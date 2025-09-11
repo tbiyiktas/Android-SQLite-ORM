@@ -50,6 +50,13 @@ public class MainActivity extends AppCompatActivity {
     @Nullable
     private CancellableFuture<DbResult<String>> cancellableRead;
 
+    private static <X> CompletableFuture<DbResult<X>> failFuture(DbResult<?> prev) {
+        CompletableFuture<DbResult<X>> f = new CompletableFuture<>();
+        String msg = prev.isSuccess() ? "Unknown failure" : ((DbResult.Error<?>) prev).getErrorMessage();
+        f.completeExceptionally(new RuntimeException(msg));
+        return f;
+    }
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -58,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
         // UI refs
         startButton = findViewById(R.id.start_db_ops_button);
         cancelButton = findViewById(R.id.cancel_db_read_button);
-        clearButton  = findViewById(R.id.clear_log_button);
+        clearButton = findViewById(R.id.clear_log_button);
         logView = findViewById(R.id.log_text);
         logScroll = findViewById(R.id.log_scroll);
         logView.setText("ADbKit showcase\n");
@@ -90,9 +97,18 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        try { if (subCreated != null) subCreated.close(); } catch (Throwable ignored) {}
-        try { if (subUpdated != null) subUpdated.close(); } catch (Throwable ignored) {}
-        try { if (subDeleted != null) subDeleted.close(); } catch (Throwable ignored) {}
+        try {
+            if (subCreated != null) subCreated.close();
+        } catch (Throwable ignored) {
+        }
+        try {
+            if (subUpdated != null) subUpdated.close();
+        } catch (Throwable ignored) {
+        }
+        try {
+            if (subDeleted != null) subDeleted.close();
+        } catch (Throwable ignored) {
+        }
         subCreated = subUpdated = subDeleted = null;
     }
 
@@ -131,7 +147,8 @@ public class MainActivity extends AppCompatActivity {
                     return todoRepo.selectWith(last);
                 })
                 .thenCompose(result -> {
-                    if (!result.isSuccess() || result.getData().isEmpty()) return failFuture(result);
+                    if (!result.isSuccess() || result.getData().isEmpty())
+                        return failFuture(result);
                     Todo latest = result.getData().get(0);
 
                     UpdateSql u = UpdateSql.build(Todo.class)
@@ -140,7 +157,8 @@ public class MainActivity extends AppCompatActivity {
 
                     return todoRepo.updateWith(u)
                             .thenApply(upRes -> {
-                                if (upRes.isSuccess()) appendOnMain("[UPDATE] affected=" + upRes.getData());
+                                if (upRes.isSuccess())
+                                    appendOnMain("[UPDATE] affected=" + upRes.getData());
                                 return upRes;
                             });
                 })
@@ -154,7 +172,8 @@ public class MainActivity extends AppCompatActivity {
 
                     return todoRepo.selectWith(last)
                             .thenCompose(selRes -> {
-                                if (!selRes.isSuccess() || selRes.getData().isEmpty()) return failFuture(selRes);
+                                if (!selRes.isSuccess() || selRes.getData().isEmpty())
+                                    return failFuture(selRes);
                                 int id = selRes.getData().get(0).id;
                                 return todoRepo.getById(id)
                                         .thenApply(getRes -> {
@@ -187,17 +206,21 @@ public class MainActivity extends AppCompatActivity {
                 }, AndroidFutures.MAIN);
     }
 
+    // helpers
+
     // Cancelable read demo
     private void runCancelableReadDemo() {
         appendLog("⏳ Starting cancelable read…");
-        cancellableRead = ctx.runDbOperation((IDbContext.DbWork<String>) db -> {
-            try {
-                TimeUnit.MILLISECONDS.sleep(600);
-                return new DbResult.Success<>("OK");
-            } catch (InterruptedException ie) {
-                return new DbResult.Error<>(ie);
-            }
-        }, false);
+        cancellableRead =
+                ctx.runRead(db -> {
+                    try {
+                        java.util.concurrent.TimeUnit.MILLISECONDS.sleep(600);
+                        return new DbResult.Success<>("OK");
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return new DbResult.Error<>(ie);
+                    }
+                });
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (cancellableRead != null) {
@@ -216,15 +239,6 @@ public class MainActivity extends AppCompatActivity {
             }
             cancellableRead = null;
         }, AndroidFutures.MAIN);
-    }
-
-    // helpers
-
-    private static <X> CompletableFuture<DbResult<X>> failFuture(DbResult<?> prev) {
-        CompletableFuture<DbResult<X>> f = new CompletableFuture<>();
-        String msg = prev.isSuccess() ? "Unknown failure" : ((DbResult.Error<?>) prev).getErrorMessage();
-        f.completeExceptionally(new RuntimeException(msg));
-        return f;
     }
 
     private void appendOnMain(final String s) {

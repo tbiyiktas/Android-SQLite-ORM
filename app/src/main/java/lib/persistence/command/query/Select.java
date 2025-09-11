@@ -54,6 +54,43 @@ public final class Select<T> {
         return new Select<>(type, tableNameOrAlias);
     }
 
+    private static void validatePlaceholders(String clause, Object... params) {
+        int placeholders = clause.length() - clause.replace("?", "").length();
+        int argCount = (params == null ? 0 : params.length);
+        if (placeholders != argCount)
+            throw new IllegalArgumentException("Placeholder count (" + placeholders + ") doesn't match args (" + argCount + ")");
+    }
+
+    private static void requireCol(String col) {
+        if (col == null || col.trim().isEmpty())
+            throw new IllegalArgumentException("column is required");
+    }
+
+    // ---------- COLUMNS ----------
+
+    private static void requireVal(Object v) {
+        if (v == null) throw new IllegalArgumentException("value is required");
+    }
+
+    /**
+     * Kolon listelerinde '*' destekler.
+     */
+    private static String qColOrStar(String col) {
+        String c = col.trim();
+        if ("*".equals(c)) return "*";
+        return qCol(c);
+    }
+
+    /**
+     * Basit identifier (tablo/alias/kolon) için backtick.
+     */
+    private static String qId(String id) {
+        String s = id.trim();
+        // Eğer kullanıcının verdiği ifade zaten bir fonksiyon/ham ifade ise burada kullanma. (columnRaw/expr kullanmalı)
+        if (s.contains("(") || s.contains(" ") || s.contains("`") || s.contains("\"")) return s;
+        return "`" + s + "`";
+    }
+
     public Select<T> distinct() {
         this.distinct = true;
         return this;
@@ -66,8 +103,6 @@ public final class Select<T> {
         this.rowMapper = mapper;
         return this;
     }
-
-    // ---------- COLUMNS ----------
 
     /**
      * Basit kolon adları (identifier). Gerekirse tablo.alan formatında ver; otomatik kaçışlanır.
@@ -257,6 +292,18 @@ public final class Select<T> {
         return this;
     }
 
+    /** Kolon identifier'ını (ve table.col şeklini) backtick'le kaçışlar. '*' ise olduğu gibi döner. */
+//    private static String qCol(String col) {
+//        String c = col.trim();
+//        if ("*".equals(c)) return "*";
+//        int dot = c.indexOf('.');
+//        if (dot > 0 && dot < c.length() - 1) {
+//            // table.col
+//            return qId(c.substring(0, dot)) + "." + qId(c.substring(dot + 1));
+//        }
+//        return qId(c);
+//    }
+
     // ---------- BUILD ----------
     public SelectQuery<T> compile() {
         StringBuilder sql = new StringBuilder();
@@ -315,7 +362,6 @@ public final class Select<T> {
         return new SelectQuery<>(sql.toString(), a, this.type, rowMapper);
     }
 
-
     // ---------- HELPERS ----------
     private void bind(Object... params) {
         if (params == null) return;
@@ -329,53 +375,6 @@ public final class Select<T> {
                 args.add(String.valueOf(p));
             }
         }
-    }
-
-    private static void validatePlaceholders(String clause, Object... params) {
-        int placeholders = clause.length() - clause.replace("?", "").length();
-        int argCount = (params == null ? 0 : params.length);
-        if (placeholders != argCount)
-            throw new IllegalArgumentException("Placeholder count (" + placeholders + ") doesn't match args (" + argCount + ")");
-    }
-
-    private static void requireCol(String col) {
-        if (col == null || col.trim().isEmpty())
-            throw new IllegalArgumentException("column is required");
-    }
-
-    private static void requireVal(Object v) {
-        if (v == null) throw new IllegalArgumentException("value is required");
-    }
-
-    /** Kolon identifier'ını (ve table.col şeklini) backtick'le kaçışlar. '*' ise olduğu gibi döner. */
-//    private static String qCol(String col) {
-//        String c = col.trim();
-//        if ("*".equals(c)) return "*";
-//        int dot = c.indexOf('.');
-//        if (dot > 0 && dot < c.length() - 1) {
-//            // table.col
-//            return qId(c.substring(0, dot)) + "." + qId(c.substring(dot + 1));
-//        }
-//        return qId(c);
-//    }
-
-    /**
-     * Kolon listelerinde '*' destekler.
-     */
-    private static String qColOrStar(String col) {
-        String c = col.trim();
-        if ("*".equals(c)) return "*";
-        return qCol(c);
-    }
-
-    /**
-     * Basit identifier (tablo/alias/kolon) için backtick.
-     */
-    private static String qId(String id) {
-        String s = id.trim();
-        // Eğer kullanıcının verdiği ifade zaten bir fonksiyon/ham ifade ise burada kullanma. (columnRaw/expr kullanmalı)
-        if (s.contains("(") || s.contains(" ") || s.contains("`") || s.contains("\"")) return s;
-        return "`" + s + "`";
     }
 
     private String aliasSql(String alias) {

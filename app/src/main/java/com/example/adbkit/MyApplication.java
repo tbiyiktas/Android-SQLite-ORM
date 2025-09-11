@@ -13,6 +13,21 @@ public class MyApplication extends Application {
     private static MyApplication instance = null;
     private volatile IDbContext dbContextInstance; // lazy
 
+    /**
+     * Lazy + thread-safe
+     */
+    public synchronized static IDbContext getDbContext() {
+        if (instance == null) {
+            throw new IllegalStateException("Uygulama henüz başlatılmadı.");
+        }
+
+        if (instance.dbContextInstance == null) {
+            instance.dbContextInstance = new DbContext(instance);
+        }
+
+        return instance.dbContextInstance;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -40,20 +55,5 @@ public class MyApplication extends Application {
         dbContextInstance = null; // lazy init
 
         instance = this;
-    }
-
-    /**
-     * Lazy + thread-safe
-     */
-    public synchronized  static IDbContext getDbContext() {
-        if (instance == null) {
-            throw new IllegalStateException("Uygulama henüz başlatılmadı.");
-        }
-
-        if(instance.dbContextInstance== null){
-            instance.dbContextInstance = new DbContext(instance);
-        }
-
-        return instance.dbContextInstance;
     }
 }

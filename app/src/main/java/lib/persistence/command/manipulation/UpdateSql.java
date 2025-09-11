@@ -6,9 +6,9 @@ import android.content.ContentValues;
 import java.util.ArrayList;
 import java.util.List;
 
-import lib.persistence.mapping.annotations.DbTableAnnotation;
 import lib.persistence.mapping.DbColumn;
 import lib.persistence.mapping.Mapper;
+import lib.persistence.mapping.annotations.DbTableAnnotation;
 
 public class UpdateSql {
     private final Class<?> type;
@@ -27,6 +27,10 @@ public class UpdateSql {
     public static UpdateSql build(Class<?> type) {
         if (type == null) throw new IllegalArgumentException("type boş olamaz");
         return new UpdateSql(type);
+    }
+
+    private static String q(String id) {
+        return "`" + id + "`";
     }
 
     /**
@@ -70,10 +74,6 @@ public class UpdateSql {
         whereArgs.add(String.valueOf(v));
         this.pendingOp = "AND";
         return this;
-    }
-
-    private static String q(String id) {
-        return "`" + id + "`";
     }
 
     public String getTableName() {

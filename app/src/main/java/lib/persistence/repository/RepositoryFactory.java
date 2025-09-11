@@ -1,7 +1,5 @@
 package lib.persistence.repository;
 
-import android.content.Context;
-
 import com.example.adbkit.repositories.EventRepository;
 import com.example.adbkit.repositories.TodoRepository;
 

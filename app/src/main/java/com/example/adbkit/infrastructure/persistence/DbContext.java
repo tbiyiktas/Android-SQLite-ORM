@@ -6,12 +6,13 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.example.adbkit.entities.Todo;
 
-import lib.persistence.core.ADbContext;
 import lib.persistence.command.definition.CreateIndexCommand;
 import lib.persistence.command.definition.CreateTableCommand;
+import lib.persistence.core.ADbContext;
 import lib.persistence.migration.Migrations;
 
 public class DbContext extends ADbContext {
+
     private static final String dbName = "local.db";
     private static final int version = 5;
 

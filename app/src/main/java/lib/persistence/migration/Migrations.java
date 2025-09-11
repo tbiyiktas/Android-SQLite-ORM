@@ -10,9 +10,6 @@ import java.util.List;
 import lib.persistence.command.definition.CreateTableCommand;
 
 public final class Migrations {
-    private Migrations() {
-    }
-
     // Buraya gerçek adımlarını ekle:
     private static final List<MigrationStep> STEPS = Arrays.asList(
             // ÖRNEK: v1 -> v2 : todos tablosuna notes kolonu ekle
@@ -49,6 +46,9 @@ public final class Migrations {
             }
             // yeni adımlar...
     );
+
+    private Migrations() {
+    }
 
     public static void apply(SQLiteDatabase db, int oldVersion, int newVersion) {
         int v = oldVersion;

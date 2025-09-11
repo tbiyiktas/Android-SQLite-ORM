@@ -4,59 +4,61 @@ package lib.persistence.core;
 import android.database.sqlite.SQLiteDatabase;
 import androidx.annotation.NonNull;
 
-public interface IDbContext extends AutoCloseable {
-    void onConfigure(@NonNull SQLiteDatabase db);
+import android.database.sqlite.SQLiteDatabase;
+import androidx.annotation.NonNull;
 
-    // --- Şema yaşam döngüsü
+/**
+ * İdeal minimal API:
+ * - runRead: read pool, NON-transactional
+ * - runWrite: write pool, ALWAYS transactional (BEGIN...COMMIT/ROLLBACK)
+ * - Net: ambiguity yok, bayrak yok, tek DbWork sözleşmesi
+ */
+public interface IDbContext extends AutoCloseable {
+
+    // --- Şema yaşam döngüsü (somut context uygulayacak)
+    void onConfigure(@NonNull SQLiteDatabase db);
     void onCreate(@NonNull SQLiteDatabase db);
     void onUpgrade(@NonNull SQLiteDatabase db, int oldVersion, int newVersion);
 
-    // --- Çalıştırıcı (temel)
-    <T> CancellableFuture<DbResult<T>> runDbOperation(@NonNull DbWork<T> work);
-    <T> CancellableFuture<DbResult<T>> runDbOperation(@NonNull DbWork<T> work, boolean writeTransaction);
+    // --- Yüksek seviye API
+    /** Read-only operasyonları read havuzunda koşturur; transaction açmaz. */
+    <T> CancellableFuture<DbResult<T>> runRead(@NonNull DbWork<T> work);
 
-    // --- Kısayollar (önerilen kullanım)
-    default <T> CancellableFuture<DbResult<T>> runTx(@NonNull DbWork<T> work) {
-        return runDbOperation(work, true);
-    }
+    /** Write operasyonlarını tek bir TRANSACTION içinde koşturur (BEGIN…COMMIT/ROLLBACK). */
+    <T> CancellableFuture<DbResult<T>> runWrite(@NonNull DbWork<T> work);
 
-    default <T> CancellableFuture<DbResult<T>> runRead(@NonNull DbWork<T> work) {
-        return runDbOperation(work, false);
-    }
-
-    // Function köprüsü (okunabilir API isteyenler için)
-    default <T> CancellableFuture<DbResult<T>> runDbOperation(
-            @NonNull java.util.function.Function<SQLiteDatabase, DbResult<T>> work
-    ) {
-        return runDbOperation((DbWork<T>) db -> safeApply(work, db), /*writeTransaction=*/ false);
-    }
-
-    default <T> CancellableFuture<DbResult<T>> runDbOperation(
-            @NonNull java.util.function.Function<SQLiteDatabase, DbResult<T>> work,
-            boolean writeTransaction
-    ) {
-        return runDbOperation((DbWork<T>) db -> safeApply(work, db), writeTransaction);
-    }
-
-    // Function -> DbWork köprüsü (null/exception güvenli)
-    static <T> DbResult<T> safeApply(
-            @NonNull java.util.function.Function<SQLiteDatabase, DbResult<T>> f,
-            @NonNull SQLiteDatabase db
-    ) {
+    // --- (İsteğe bağlı) Test kolaylığı: bloklayıcı varyantlar
+    /** Testler için: future.get() sarmalayıcısı (main-thread’de kullanılmamalıdır). */
+    default <T> DbResult<T> runReadSync(@NonNull DbWork<T> work) {
         try {
-            DbResult<T> r = f.apply(db);
-            return (r != null) ? r : new DbResult.Error<>(new IllegalStateException("Null DbResult"));
-        } catch (Throwable t) {
-            return new DbResult.Error<>((t instanceof Exception) ? (Exception) t : new RuntimeException(t));
+            return runRead(work).get(); // CancellableFuture#get: uygulamanızdaki bloklayıcı çağrı
+        } catch (Exception e) {
+            return new DbResult.Error<>(e);
+        }
+    }
+
+    /** Testler için: future.get() sarmalayıcısı (main-thread’de kullanılmamalıdır). */
+    default <T> DbResult<T> runWriteSync(@NonNull DbWork<T> work) {
+        try {
+            return runWrite(work).get();
+        } catch (Exception e) {
+            return new DbResult.Error<>(e);
         }
     }
 
     @Override
     void close();
 
+    // --- Tek sözleşme
     @FunctionalInterface
     interface DbWork<T> {
+        /** İstemci kod transaction/connection yönetmez; yalnızca iş mantığını yazar. */
         @NonNull
         DbResult<T> perform(@NonNull SQLiteDatabase db) throws Exception;
+
+        /** (İsteğe bağlı) Telemetri/izleme için ad. */
+        default @NonNull String name() {
+            return getClass().getSimpleName();
+        }
     }
 }

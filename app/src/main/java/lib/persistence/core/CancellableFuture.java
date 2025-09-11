@@ -15,7 +15,9 @@ public class CancellableFuture<T> extends CompletableFuture<T>
 
     private final AtomicBoolean workCancelled = new AtomicBoolean(false);
 
-    /** İş iptal isteği (idempotent). Future'ı da iptal eder. */
+    /**
+     * İş iptal isteği (idempotent). Future'ı da iptal eder.
+     */
     public boolean cancelWork() {
         if (workCancelled.compareAndSet(false, true)) {
             super.cancel(true); // mayInterruptIfRunning=true
@@ -24,7 +26,9 @@ public class CancellableFuture<T> extends CompletableFuture<T>
         return false;
     }
 
-    /** Future.cancel(...) doğrudan çağrılırsa da işaretleyelim. */
+    /**
+     * Future.cancel(...) doğrudan çağrılırsa da işaretleyelim.
+     */
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         workCancelled.set(true);

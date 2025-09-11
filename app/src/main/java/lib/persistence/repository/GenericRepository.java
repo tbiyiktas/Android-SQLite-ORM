@@ -1,4 +1,4 @@
-// lib/persistence/GenericRepository.java
+// lib/persistence/repository/GenericRepository.java
 package lib.persistence.repository;
 
 import android.database.Cursor;
@@ -34,10 +34,11 @@ public abstract class GenericRepository<T> {
 
     // --- küçük yardımcılar (overload belirsizliğini engeller) ---
     private <R> CancellableFuture<DbResult<R>> runWrite(DbWork<R> work) {
-        return dbContext.runDbOperation(work, true);
+        return dbContext.runWrite(work);
     }
+
     private <R> CancellableFuture<DbResult<R>> runRead(DbWork<R> work) {
-        return dbContext.runDbOperation(work, false);
+        return dbContext.runRead(work);
     }
 
     // CREATE
@@ -160,9 +161,9 @@ public abstract class GenericRepository<T> {
         });
     }
 
-    // --- Tx-aware iç yardımcılar (Transactions.run içinde kullanmak için) ---
+    // --- Tx-aware iç yardımcılar (ctx.runWrite(...) akışında kullanılmak üzere) ---
     protected T insertTx(SQLiteDatabase db, T entity) throws Exception {
-        var cmd = lib.persistence.command.manipulation.InsertCommand.build(entity);
+        var cmd = InsertCommand.build(entity);
         long rowId = db.insert(cmd.getTableName(), null, cmd.getContentValues());
         if (rowId == -1) throw new Exception("Insert failed");
         var cols = Mapper.classToDbColumns(type);
@@ -180,14 +181,14 @@ public abstract class GenericRepository<T> {
     }
 
     protected T updateTx(SQLiteDatabase db, T entity) throws Exception {
-        var cmd = lib.persistence.command.manipulation.UpdateCommand.build(entity);
+        var cmd = UpdateCommand.build(entity);
         int n = db.update(cmd.getTableName(), cmd.getValues(), cmd.getWhereClause(), cmd.getWhereArgs());
         if (n <= 0) throw new Exception("Update affected 0 rows");
         return entity;
     }
 
     protected int deleteTx(SQLiteDatabase db, T entity) throws Exception {
-        var cmd = lib.persistence.command.manipulation.DeleteCommand.build(entity);
+        var cmd = DeleteCommand.build(entity);
         int n = db.delete(cmd.getTableName(), cmd.getWhereClause(), cmd.getWhereArgs());
         if (n <= 0) throw new Exception("Delete affected 0 rows");
         return n;

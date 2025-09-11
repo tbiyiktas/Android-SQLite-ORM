@@ -3,7 +3,9 @@ package lib.persistence;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** Global DB ayarları (threading + PRAGMA). Uygulama açılışında apply(...) ile set edin. */
+/**
+ * Global DB ayarları (threading + PRAGMA). Uygulama açılışında apply(...) ile set edin.
+ */
 public final class DbContextConfig {
 
     // Threading
@@ -17,19 +19,12 @@ public final class DbContextConfig {
     // PRAGMA / bağlantı
     public final boolean enableWAL;
     public final boolean pragmaForeignKeys;
-    public final String  pragmaJournalMode;   // "WAL"
-    public final String  pragmaSynchronous;   // "NORMAL" / "FULL" / ...
-    public final int     pragmaBusyTimeoutMs; // 0 => kapalı
+    public final String pragmaJournalMode;   // "WAL"
+    public final String pragmaSynchronous;   // "NORMAL" / "FULL" / ...
+    public final int pragmaBusyTimeoutMs; // 0 => kapalı
 
     // Read thread adları için sayaç
     private final AtomicInteger readIndex = new AtomicInteger(1);
-    public int nextReadIndex() { return readIndex.getAndIncrement(); }
-
-    // ---- Singleton ----
-    private static volatile DbContextConfig INSTANCE = defaults();
-    public static DbContextConfig get() { return INSTANCE; }
-    public static void apply(DbContextConfig cfg) { INSTANCE = cfg; }
-    public static Builder builder() { return new Builder(INSTANCE); }
 
     private DbContextConfig(Builder b) {
         this.readThreads = b.readThreads;
@@ -44,6 +39,19 @@ public final class DbContextConfig {
         this.pragmaJournalMode = b.pragmaJournalMode;
         this.pragmaSynchronous = b.pragmaSynchronous;
         this.pragmaBusyTimeoutMs = b.pragmaBusyTimeoutMs;
+    }
+
+    public static DbContextConfig get() {
+        return INSTANCE;
+    }    // ---- Singleton ----
+    private static volatile DbContextConfig INSTANCE = defaults();
+
+    public static void apply(DbContextConfig cfg) {
+        INSTANCE = cfg;
+    }
+
+    public static Builder builder() {
+        return new Builder(INSTANCE);
     }
 
     private static DbContextConfig defaults() {
@@ -62,6 +70,10 @@ public final class DbContextConfig {
                 .build();
     }
 
+    public int nextReadIndex() {
+        return readIndex.getAndIncrement();
+    }
+
     // ---- Builder ----
     public static final class Builder {
         private int readThreads = 4;
@@ -73,9 +85,9 @@ public final class DbContextConfig {
 
         private boolean enableWAL = true;
         private boolean pragmaForeignKeys = true;
-        private String  pragmaJournalMode = "WAL";
-        private String  pragmaSynchronous = "NORMAL";
-        private int     pragmaBusyTimeoutMs = 10_000;
+        private String pragmaJournalMode = "WAL";
+        private String pragmaSynchronous = "NORMAL";
+        private int pragmaBusyTimeoutMs = 10_000;
 
         private Builder(DbContextConfig from) {
             if (from != null) {
@@ -94,19 +106,65 @@ public final class DbContextConfig {
             }
         }
 
-        public Builder readThreads(int v) { this.readThreads = v; return this; }
-        public Builder readQueueCapacity(int v) { this.readQueueCapacity = v; return this; }
-        public Builder writeQueueCapacity(int v) { this.writeQueueCapacity = v; return this; }
-        public Builder nonExclusiveTransactions(boolean v) { this.nonExclusiveTransactions = v; return this; }
-        public Builder readThreadNamePrefix(String v) { this.readThreadNamePrefix = v; return this; }
-        public Builder writeThreadName(String v) { this.writeThreadName = v; return this; }
+        public Builder readThreads(int v) {
+            this.readThreads = v;
+            return this;
+        }
 
-        public Builder enableWAL(boolean v) { this.enableWAL = v; return this; }
-        public Builder pragmaForeignKeys(boolean v) { this.pragmaForeignKeys = v; return this; }
-        public Builder pragmaJournalMode(String v) { this.pragmaJournalMode = v; return this; }
-        public Builder pragmaSynchronous(String v) { this.pragmaSynchronous = v; return this; }
-        public Builder pragmaBusyTimeoutMs(int v) { this.pragmaBusyTimeoutMs = v; return this; }
+        public Builder readQueueCapacity(int v) {
+            this.readQueueCapacity = v;
+            return this;
+        }
 
-        public DbContextConfig build() { return new DbContextConfig(this); }
+        public Builder writeQueueCapacity(int v) {
+            this.writeQueueCapacity = v;
+            return this;
+        }
+
+        public Builder nonExclusiveTransactions(boolean v) {
+            this.nonExclusiveTransactions = v;
+            return this;
+        }
+
+        public Builder readThreadNamePrefix(String v) {
+            this.readThreadNamePrefix = v;
+            return this;
+        }
+
+        public Builder writeThreadName(String v) {
+            this.writeThreadName = v;
+            return this;
+        }
+
+        public Builder enableWAL(boolean v) {
+            this.enableWAL = v;
+            return this;
+        }
+
+        public Builder pragmaForeignKeys(boolean v) {
+            this.pragmaForeignKeys = v;
+            return this;
+        }
+
+        public Builder pragmaJournalMode(String v) {
+            this.pragmaJournalMode = v;
+            return this;
+        }
+
+        public Builder pragmaSynchronous(String v) {
+            this.pragmaSynchronous = v;
+            return this;
+        }
+
+        public Builder pragmaBusyTimeoutMs(int v) {
+            this.pragmaBusyTimeoutMs = v;
+            return this;
+        }
+
+        public DbContextConfig build() {
+            return new DbContextConfig(this);
+        }
     }
+
+
 }

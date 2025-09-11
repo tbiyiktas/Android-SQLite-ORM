@@ -7,11 +7,11 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
+import lib.persistence.mapping.DbColumn;
+import lib.persistence.mapping.Mapper;
 import lib.persistence.mapping.annotations.DbConverterAnnotation;
 import lib.persistence.mapping.converters.ConverterRegistry;
 import lib.persistence.mapping.converters.TypeConverter;
-import lib.persistence.mapping.DbColumn;
-import lib.persistence.mapping.Mapper;
 
 public class UpdateCommand {
     private final String tableName;    // RAW (backticksiz)

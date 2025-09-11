@@ -16,9 +16,6 @@ import lib.persistence.core.CancellableFuture;
  */
 public final class AndroidFutures {
 
-    private AndroidFutures() {
-    }
-
     /**
      * Tekil Main Thread executor.
      */
@@ -35,6 +32,8 @@ public final class AndroidFutures {
         if (Thread.currentThread() == Looper.getMainLooper().getThread()) r.run();
         else MAIN_HANDLER.post(r);
     };
+    private AndroidFutures() {
+    }
 
     /**
      * Basitçe UI’da çalıştır.

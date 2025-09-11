@@ -2,17 +2,16 @@
 package lib.persistence.command.manipulation;
 
 import static lib.persistence.SqlNames.qCol;
-import static lib.persistence.SqlNames.qId;
 
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import lib.persistence.mapping.DbColumn;
+import lib.persistence.mapping.Mapper;
 import lib.persistence.mapping.annotations.DbConverterAnnotation;
 import lib.persistence.mapping.converters.ConverterRegistry;
 import lib.persistence.mapping.converters.TypeConverter;
-import lib.persistence.mapping.DbColumn;
-import lib.persistence.mapping.Mapper;
 
 /**
  * DELETE komutu derleyicisi:
