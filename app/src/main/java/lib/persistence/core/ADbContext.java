@@ -16,6 +16,8 @@ import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import lib.concurrent.CancellableFuture;
+import lib.concurrent.WorkCancellationAware;
 import lib.persistence.DbContextConfig;
 import lib.persistence.tx.AfterCommitEvents;
 
@@ -269,7 +271,7 @@ public abstract class ADbContext extends SQLiteOpenHelper implements IDbContext 
 
     // CancellableFuture içinde isWorkCancelled() varsa destekle; yoksa sessizce false döner.
     private static boolean isWorkCancelled(CancellableFuture<?> f) {
-        return (f instanceof lib.persistence.core.WorkCancellationAware)
-                && ((lib.persistence.core.WorkCancellationAware) f).isWorkCancelled();
+        return (f instanceof WorkCancellationAware)
+                && ((WorkCancellationAware) f).isWorkCancelled();
     }
 }

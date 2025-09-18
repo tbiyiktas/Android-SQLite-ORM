@@ -7,9 +7,9 @@ import com.example.adbkit.entities.Todo;
 import lib.persistence.repository.GenericRepository;
 import lib.persistence.core.IDbContext;
 
-import lib.persistence.core.CancellableFuture;
+import lib.concurrent.CancellableFuture;
 import lib.persistence.core.DbResult;
-import lib.persistence.AndroidFutures;
+import lib.concurrent.AndroidFutures;
 import com.example.adbkit.events.SimpleEventBus;
 import com.example.adbkit.events.TodoCreatedEvent;
 import com.example.adbkit.events.TodoUpdatedEvent;

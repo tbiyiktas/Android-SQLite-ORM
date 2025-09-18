@@ -16,7 +16,7 @@ import lib.persistence.command.manipulation.UpdateSql;
 import lib.persistence.command.query.GetQuery;
 import lib.persistence.command.query.Select;
 import lib.persistence.command.query.SelectQuery;
-import lib.persistence.core.CancellableFuture;
+import lib.concurrent.CancellableFuture;
 import lib.persistence.core.DbResult;
 import lib.persistence.core.IDbContext;
 import lib.persistence.core.IDbContext.DbWork;

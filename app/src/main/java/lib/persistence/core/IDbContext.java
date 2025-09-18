@@ -4,6 +4,8 @@ package lib.persistence.core;
 import android.database.sqlite.SQLiteDatabase;
 import androidx.annotation.NonNull;
 
+import lib.concurrent.CancellableFuture;
+
 public interface IDbContext extends AutoCloseable {
     void onConfigure(@NonNull SQLiteDatabase db);
 

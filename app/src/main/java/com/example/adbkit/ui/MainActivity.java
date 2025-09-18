@@ -24,10 +24,10 @@ import com.example.adbkit.services.TodoService;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import lib.persistence.AndroidFutures;
+import lib.concurrent.AndroidFutures;
 import lib.persistence.command.manipulation.UpdateSql;
 import lib.persistence.command.query.Select;
-import lib.persistence.core.CancellableFuture;
+import lib.concurrent.CancellableFuture;
 import lib.persistence.core.DbResult;
 import lib.persistence.core.IDbContext;
 import lib.persistence.repository.RepositoryFactory;
@@ -115,7 +115,8 @@ public class MainActivity extends AppCompatActivity {
 
                     Select<Todo> sel = Select.from(Todo.class)
                             .columns("id", "title", "completed")
-                            .whereEq("userId", 1)
+                            //.whereEq("userId", 1)
+                            .whereEq("id", created.id)
                             .orderBy("id", false)
                             .limit(50);
                     return todoRepo.selectWith(sel);
